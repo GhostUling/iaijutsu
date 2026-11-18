@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>居合斩 · 无限连闪</title>
-<link rel="stylesheet" href="css/style.css?v=2">
+<link rel="stylesheet" href="css/style.css?v=5">
 </head>
 <body>
   <div id="stage">
@@ -34,8 +34,10 @@
 
         <div class="title-stats">
           <div class="title-stat">
-            <div class="title-stat-label">🏆 历史最高</div>
-            <div class="title-stat-value"><b id="title-high">0</b> <span>连斩</span></div>
+            <div class="title-stat-label">🏆 最高纪录</div>
+            <div class="title-record"><span class="mode-tag">原版</span><b id="title-high">0</b><span class="title-record-unit">连斩</span></div>
+            <div class="title-record"><span class="mode-tag mode-tag-ex">异靶</span><b id="title-high-ex">0</b><span class="title-record-unit">连斩</span></div>
+            <div class="title-record"><span class="mode-tag mode-tag-boss">宿敌</span><b id="title-high-boss">0</b><span class="title-record-unit">连斩</span></div>
           </div>
           <div class="title-stat">
             <div class="title-stat-label">🎮 操作</div>
@@ -49,19 +51,26 @@
         </div>
 
         <div class="title-actions">
-          <button type="button" id="title-start-btn" class="btn-primary">⚔️ 拔刀出鞘 <small>空格 / 点击</small></button>
-          <button type="button" id="title-hub-btn" class="btn-secondary">🏮 皮肤工坊</button>
-          <button type="button" id="title-mute-btn" class="btn-ghost">🔊 静音 M</button>
+          <button type="button" id="title-start-btn" class="btn-primary">⚔️ 原版 <small>经典三靶</small></button>
+          <button type="button" id="title-start-ex-btn" class="btn-ex">🧪 异靶 <small>四新靶</small></button>
+          <button type="button" id="title-start-boss-btn" class="btn-boss">👹 宿敌 <small>BOSS</small></button>
         </div>
-        <div class="title-foot">刀痕 · 道场 · 无我奥义，靠连斩纪录解锁</div>
+
+        <!-- 工具按钮：放到卡片右上角，让三个模式按钮能排成一行 -->
+        <div class="title-tools">
+          <button type="button" id="title-hub-btn" class="btn-ghost">🏮 工坊</button>
+          <button type="button" id="title-mute-btn" class="btn-ghost">🔊 声音 M</button>
+        </div>
+        <div class="title-foot">原版：三种靶 · 熟悉的手感　|　异靶：💣 勿斩 · 🗿 两刀 · 🪞 分裂 · 🔗 连锁　|　宿敌：读招 → 躲开 → 砍弱点</div>
       </div>
     </div>
 
     <!-- 结算页 -->
     <div id="result-screen" class="overlay hidden">
       <div class="result-wrap">
-        <div class="result-icon">🎯</div>
-        <h2 class="result-title">特训结束</h2>
+        <div class="result-icon" id="result-icon">🎯</div>
+        <h2 class="result-title" id="result-title">特训结束</h2>
+        <div id="result-mode" class="result-mode"></div>
         <div id="result-msg" class="result-msg">⚔️ 居合断连 3 次，特训结束！</div>
 
         <div class="result-combo-box">
@@ -94,7 +103,7 @@
 
       <div class="iai-hub-hero">
         <div class="iai-hub-hero-stat">
-          <div class="iai-hub-stat-label">🏆 居合最高纪录</div>
+          <div class="iai-hub-stat-label">🏆 最高连斩（两模式取高）</div>
           <div class="iai-hub-stat-val"><b id="iai-hub-high">0</b> <span class="iai-hub-stat-unit">连斩</span></div>
           <div class="iai-hub-stat-rank" id="iai-hub-rank">初入剑道</div>
         </div>
@@ -143,7 +152,7 @@
     </div>
   </div>
 
-  <script src="js/load_order.js?v=2"></script>
+  <script src="js/load_order.js?v=5"></script>
   <script>
     (function () {
       var list = window.GAME_LOAD_ORDER || [];

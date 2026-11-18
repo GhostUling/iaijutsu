@@ -37,6 +37,119 @@ Windows 上也可以直接双击 `启动游戏.bat`。
 
 ---
 
+## 三种模式
+
+标题页三个入口，**原版永远保持原样**，新内容各自独立成模式：
+
+| 模式 | 内容 | 记录键 |
+|---|---|---|
+| ⚔️ **原版** | 与街机厅逐帧一致（普通 / 黄金 / 飞梭三种靶） | `arcade_iaijutsu_high` |
+| 🧪 **异靶** | 原版规则 + 四种新靶，其余手感完全不变 | `arcade_iaijutsu_ex_high` |
+| 👹 **宿敌** | 一对一 Boss 战：读招 → 躲开 → 打弱点 | `arcade_iaijutsu_boss_high` |
+
+**异靶模式的新靶**（连斩 ≥ 6 才开始出现；每种场上最多 1 个；每次生成 12% 概率抽一个）：
+
+| 靶 | 规则 | 想制造的决策 |
+|---|---|---|
+| 💣 诱饵雷 | 斩中 **−1 命**、清空连斩；不刷新 CD，不算挥空 | 不能无脑锁最近，得先看清场上 |
+| 🗿 铁壁靶 | **两刀**：第一刀崩甲并立刻刷新 CD，第二刀才结算 +1 | 连续两次精准突进，而不是一刀了事 |
+| 🪞 分裂靶 | 斩中裂成 **2 个 2.2s 小靶**（各 +1，不扣命） | 斩完立刻补刀，连招收益 |
+| 🔗 连锁靶 | 斩中拉出 **0.55s 补刀线**，限时斩中目标额外 **+3 连斩** | 第一次引入"节奏输入" |
+
+保底规则：新靶**不会因为超时扣命**（诱饵 9s、铁壁 12s 自行退场，小靶 2.2s 消失）；
+诱饵不会在离玩家 100px 内生成；无我/收刀/冲击波期间不投新靶，诱饵在演武中也不罚。
+
+三模式的最高连斩**分开记录**；但刀痕 / 道场 / 音律 / 奥义的解锁进度取三者较高值（`getUnlockScore`）。
+
+### 宿敌战怎么打
+
+**这个模式的核心不是"砍得快"，是"用居合本身位移"。**
+
+每局随机从三位宿敌里抽一位：**影武者「无明」**（均衡）、**鬼武者「赤鬼」**（力大、扇形更宽）、
+**剑圣「白夜」**（出招快、飞刃多）。共用同一套引擎，靠血量 / 配色 / 招式权重区分。
+
+#### 和原版不同的三条规则
+
+| | 原版 / 异靶 | 宿敌战 |
+|---|---|---|
+| 挥空 | 扣 1 命 + 断连 | **不扣命**，只锁突进 1.9s |
+| 砍中 | 刷新突进 | 刷新突进（一样） |
+| 掉血 | 挥空 / 超时 | **只有被 Boss 招式击中才掉** |
+
+所以这模式唯一的血源是"被打中"，唯一的机动手段是"砍中东西"：
+砍中 → 突进立刻可用；砍空 → 1.9 秒里只能走位。
+
+#### 刀魂 = 跳板
+
+场上始终有 2~3 个**刀魂**（画着青色 ⟳ 环的普通靶）。砍中它一样刷新突进，
+于是"Boss 身边 → 刀魂 → 另一个刀魂 → Boss 破绽"能连成一串位移，既躲招又不断节奏。
+刀魂 10~13 秒自然消散（不扣命），每 4.5 秒补一个，上限 3。
+
+#### Boss 的六套招式
+
+| 招式 | 预警 | 效果 | 解法 |
+|---|---|---|---|
+| 💥 环身爆发 | 以 Boss 为圆心的红圈 + 收缩虚线圈 | 圈内 **-1 命** | 0.8s 内出圈 |
+| 🌀 剑阵 | 一圈向外的红色虚线 | 8~12 把飞刃全向放射 | 侧向绕、或突进穿缝 |
+| 🔪 横扫 | 扇形红区 | 180°（赤鬼 229°）大范围 -1 命 | 突进出扇形 |
+| 🗡 飞刃 | 朝你的一条扇形虚线 | 5~7 把扇形飞刃 | 侧移 / 突进斩落 |
+| ⚡ 一闪 | 锁定直线 + 末端圆圈 | Boss 突进 340px | 侧向突进 |
+| 👻 召唤刀魂 | — | 二阶段起补靶 | 当跳板用 |
+
+选招**按距离加权**：站在 210px 内时约 68% 会放环身爆发或剑阵；离得远才多是飞刃与一闪。
+一阶段不出剑阵与一闪，先把"贴脸会炸"教会。
+
+#### 其他细节
+
+- 砍**发光弱点** 4 点、砍铁甲 1 点；砍中都会刷新突进。
+- **蓄力 / 出招中砍 Boss = 弹刀**：0 伤害 + 锁突进 1.9s。这条是防"贴脸靠无敌帧免疫一切"的关键。
+- 每刀命中 0.11s 内置冷却，一次突进最多结算一次。
+- **空格 = 【心眼】**：0.45s 无敌 + 短暂子弹时间 + 斩落身边 220px 飞刃，CD 5s。本模式封印【无我】。
+- 突进穿过飞刃可以把它砍掉（+1 连斩）。
+- 受击后 1.0s 无敌，不会被一套连招打空。
+- 击杀 Boss 额外 +30 连斩并直接胜利结算。
+
+血量：无明 164 / 赤鬼 178 / 白夜 168。
+
+#### 平衡怎么验的
+
+两个无头机器人各跑多局，走的都是真实 `Main.update` 管线：
+
+- **贴脸连砍机器人**（一直瞄 Boss、每 8 帧一刀）：8 局 **8 负**，最好一次只把 Boss 打到剩 25 血。
+- **跳板机器人**（蓄力时跳到圈外的刀魂、破绽期砍弱点）：4 局 **4 胜**，15~19 秒，剩 1~2 命。
+
+想要的就是这个差：**站桩输出必死，读招 + 跳板才活得下来。**
+
+### 代码是怎么分开的
+
+- 原版五个文件（`iaijutsu_mode/targets/fx/ultimates/skins`）**一行未改**，指纹测试仍与 game4 完全一致。
+- 新增两个独立文件：
+  - `iaijutsu_targets_ex.js`：`Object.create(IaijutsuTargets)`，只加四种靶与绘制；
+  - `iaijutsu_mode_ex.js`：`Object.assign({}, IaijutsuMode)`，只覆盖 `init / spawnDummies / onKill / update`。
+- 宿主 `MiniGames.start('iaijutsu', 'ex')` 时把 `window.IaijutsuMode / IaijutsuTargets` 临时指向扩展实现，
+  `leave()` 时还原。这样连 `IaijutsuUltimates` 里那些写死 `IaijutsuMode.xxx` 的调用也会自动走新模式。
+- 新靶概率、上限、连斩门槛全部集中在 `IaijutsuModeEx.spawnDummies`，以后加靶只动这个文件。
+
+宿敌战同样独立：
+
+- `iaijutsu_boss.js`：Boss 实体（状态机 / 四套招式 / 弱点 / 飞刃 / 血条渲染），外加一个
+  `IaijutsuTargetsBoss` 代理——只覆盖 `drawDummy`，让原版不要用普通靶的画法去画 Boss。
+- `iaijutsu_mode_boss.js`：`Object.assign({}, IaijutsuMode)`，只覆盖 `init / spawnDummies / onKill / update / render`。
+- Boss 本体在 `data.dummies` 里是一枚 `isBoss` 的"假靶"（半径 66、倒计时钉死 9999），
+  所以**原版的线段命中、突进手感、子弹时间、连斩结算全都不用改**，直接复用。
+- 宿敌战不会自动补靶（`spawnDummies` 空实现），场上只有 Boss 与它召唤的刀魂。
+
+### 再加一个新模式只要四步
+
+1. 新建 `js/modes/iaijutsu/xxx_ex.js`：`Object.create(IaijutsuTargets)` / `Object.assign({}, IaijutsuMode)` 扩展，原版文件不动；
+2. `js/load_order.js` 里加一行（放在 `minigames.js` 之前）；
+3. `MiniGames.MODE_META` 加一条：`name / emoji / highKey / hudTitle / legend / modeImpl / targetsImpl`；
+4. `index.html` 加一个按钮，`UI.beginRun('新 id')`。
+
+宿主与 HUD 都按注册表取数据（标题名、速查条、记录键、实现对象），不需要再写 `if (mode === 'xxx')`。
+
+---
+
 ## 和原版的关系
 
 `js/modes/iaijutsu/` 下的五个模块是**原样搬运**的：
@@ -96,8 +209,10 @@ HASH=74c601f224b8a30483abed0db6bd54c134ce10aa044558fc1ec6e14eee052832
 运行方式：
 
 ```bash
-npm test                                  # 本目录
-node tests/iaijutsu_golden.js             # 原版 game4 目录里同名脚本，输出应完全相同
+npm test                        # 指纹（原版）+ 异靶回归 + 宿敌回归，三个套件
+node tests/iaijutsu_golden.js   # 只跑原版指纹（game4 里同名脚本，输出应完全相同）
+node tests/iaijutsu_ex_test.js  # 只跑异靶：生成门控/上限/诱饵罚命/铁壁两刀/分裂/连锁/记录隔离
+node tests/iaijutsu_boss_test.js # 只跑宿敌：弱点 4 伤/铁甲 1 伤/弹刀/阶段/横扫/心眼/飞刃/胜败结算/记录隔离
 ```
 
 ---
@@ -132,8 +247,12 @@ js/load_order.js        脚本清单（index.html 与 tests 共用）
 js/core/                config / utils / physics / game / fx / input / sfx / main
 js/entities/player.js   玩家（街机路径）
 js/modes/minigames.js   宿主：房间、更新、渲染、HUD
-js/modes/iaijutsu/      居合五模块（原版搬运）
+js/modes/iaijutsu/      居合五模块（原版搬运，零改动）
+  ├─ *_ex.js            异靶扩展包（靶型 + 模式控制器，独立文件）
+  └─ *_boss.js          宿敌扩展包（Boss 实体 + 模式控制器，独立文件）
 js/ui/ui.js             横幅、标题、结算、皮肤工坊
 assets/audio/           拔刀音 + 6 首 BGM（本地自备，不入 git；清单见其 README）
-tests/iaijutsu_golden.js 行为指纹测试
+tests/iaijutsu_golden.js 行为指纹测试（与 game4 共用）
+tests/iaijutsu_ex_test.js 异靶模式回归测试
+tests/iaijutsu_boss_test.js 宿敌战回归测试
 ```

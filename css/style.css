@@ -90,6 +90,7 @@ canvas {
 
 /* ---------- 标题页 ---------- */
 .title-wrap {
+  position: relative;
   width: min(720px, 92vw);
   padding: 38px 42px 30px;
   border-radius: 18px;
@@ -680,3 +681,107 @@ canvas {
 }
 .iai-hub-btn-pri:hover {
   transform: translateY(-1px);
+  box-shadow: 0 2px 10px rgba(56, 189, 248, 0.4);
+}
+
+/* ---------- 双模式入口（原版 / 异靶） ---------- */
+.btn-ex {
+  padding: 13px 22px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #f5f3ff;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.35), rgba(34, 211, 238, 0.22));
+  border: 1px solid rgba(168, 85, 247, 0.65);
+  border-radius: 9px;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(168, 85, 247, 0.22);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.btn-ex small { font-size: 11px; font-weight: 600; opacity: 0.75; margin-left: 5px; }
+.btn-ex:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(168, 85, 247, 0.38); }
+
+.mode-tag {
+  display: inline-block;
+  min-width: 34px;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: rgba(56, 189, 248, 0.18);
+  color: #7dd3fc;
+  font-size: 11px;
+  text-align: center;
+}
+.mode-tag-ex { background: rgba(168, 85, 247, 0.22); color: #d8b4fe; }
+
+.title-record {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 13px;
+  color: #e2e8f0;
+}
+.title-record b { font-size: 22px; color: #fde047; text-shadow: 0 0 14px rgba(250, 204, 21, 0.35); }
+.title-record-unit { font-size: 11px; color: #94a3b8; }
+
+.result-mode { margin-top: 6px; font-size: 12px; letter-spacing: 1px; color: #a5b4fc; }
+
+/* 静音按钮挪到标题卡右上角，避免和主按钮挤成两行 */
+#title-mute-btn {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  padding: 7px 12px;
+  font-size: 11.5px;
+}
+
+/* ---------- 宿敌战入口 ---------- */
+.btn-boss {
+  padding: 13px 22px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #fff1f2;
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.38), rgba(124, 58, 237, 0.26));
+  border: 1px solid rgba(244, 63, 94, 0.7);
+  border-radius: 9px;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(244, 63, 94, 0.24);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.btn-boss small {
+  font-size: 10px;
+  font-weight: 700;
+  opacity: 0.8;
+  margin-left: 5px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(244, 63, 94, 0.35);
+}
+.btn-boss:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(244, 63, 94, 0.42); }
+
+.mode-tag-boss { background: rgba(244, 63, 94, 0.2); color: #fda4af; }
+
+/* 标题卡右上角工具按钮（工坊 / 声音） */
+.title-tools {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  display: flex;
+  gap: 8px;
+  z-index: 3;
+}
+.title-tools .btn-ghost { padding: 7px 12px; font-size: 11.5px; }
+
+/* 三个模式按钮等宽一点，视觉更整齐 */
+#title-start-btn, #title-start-ex-btn, #title-start-boss-btn { flex: 1 1 0; min-width: 150px; }
+
+/* 覆盖早前给静音按钮写的绝对定位（现在由 .title-tools 容器统一摆放） */
+#title-mute-btn {
+  position: static;
+  top: auto;
+  right: auto;
+}
+
+/* 按钮文案不换行 */
+#title-start-btn, #title-start-ex-btn, #title-start-boss-btn { white-space: nowrap; padding-left: 14px; padding-right: 14px; }

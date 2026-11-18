@@ -6,6 +6,7 @@ var UI = {
   endPanel: null,
   iaiHubPanel: null,
   iaiActiveTab: 'slash',
+  lastModeId: 'classic',
   _bannerTimer: null,
   _muted: false,
 
@@ -61,7 +62,11 @@ var UI = {
 
     // ---- 标题 / 结算 ----
     var startBtn = document.getElementById('title-start-btn');
-    if (startBtn) startBtn.addEventListener('click', function () { UI.beginRun(); });
+    if (startBtn) startBtn.addEventListener('click', function () { UI.beginRun('classic'); });
+    var startExBtn = document.getElementById('title-start-ex-btn');
+    if (startExBtn) startExBtn.addEventListener('click', function () { UI.beginRun('ex'); });
+    var startBossBtn = document.getElementById('title-start-boss-btn');
+    if (startBossBtn) startBossBtn.addEventListener('click', function () { UI.beginRun('boss'); });
     var hubBtn = document.getElementById('title-hub-btn');
     if (hubBtn) hubBtn.addEventListener('click', function () { UI.showIaijutsuHub(); });
     var muteBtn = document.getElementById('title-mute-btn');
@@ -73,7 +78,7 @@ var UI = {
     this.initAudioUnlock();
 
     var retryBtn = document.getElementById('result-retry-btn');
-    if (retryBtn) retryBtn.addEventListener('click', function () { UI.beginRun(); });
+    if (retryBtn) retryBtn.addEventListener('click', function () { UI.beginRun(UI.lastModeId); });
     var backBtn = document.getElementById('result-back-btn');
     if (backBtn) backBtn.addEventListener('click', function () { UI.showTitle(); });
 
@@ -94,7 +99,13 @@ var UI = {
   },
 
   // ==================== 开局 / 离场 ====================
-  beginRun: function () {
+  // modeId: 'classic' 原版 / 'ex' 异靶乱舞
+  beginRun: function (modeId) {
+    if (modeId && window.MiniGames && MiniGames.MODE_META && MiniGames.MODE_META[modeId]) {
+      this.lastModeId = modeId;
+    } else if (!this.lastModeId) {
+      this.lastModeId = 'classic';
+    }
     if (window.SFX) {
       SFX.init();
       SFX.resume();
@@ -115,7 +126,7 @@ var UI = {
     Game.particles = [];
     Game.effects = [];
     Game.state = 'PLAYING';
-    MiniGames.start('iaijutsu');
+    MiniGames.start('iaijutsu', this.lastModeId);
 
     // 若音频上下文仍被浏览器挂起，给玩家一个明确的恢复手势提示
     var self = this;
@@ -140,8 +151,14 @@ var UI = {
       IaijutsuMode.restoreDefaultCursor();
     }
     if (this.titlePanel) this.titlePanel.classList.remove('hidden');
-    var highEl = document.getElementById('title-high');
-    if (highEl && window.MiniGames) highEl.textContent = MiniGames.getHighScore('iaijutsu');
+    if (window.MiniGames) {
+      var highEl = document.getElementById('title-high');
+      if (highEl) highEl.textContent = MiniGames.getModeHighScore('classic');
+      var highExEl = document.getElementById('title-high-ex');
+      if (highExEl) highExEl.textContent = MiniGames.getModeHighScore('ex');
+      var highBossEl = document.getElementById('title-high-boss');
+      if (highBossEl) highBossEl.textContent = MiniGames.getModeHighScore('boss');
+    }
   },
 
   hideTitle: function () {
@@ -157,9 +174,14 @@ var UI = {
       var n = document.getElementById(id);
       if (n) n.textContent = txt;
     };
+    var modeHigh = MiniGames.getModeHighScore();
+    var isWin = (s.result === 'win' || MiniGames.result === 'win');
+    setText('result-icon', isWin ? '🏆' : '🎯');
+    setText('result-title', isWin ? '宿敌已斩' : '特训结束');
+    setText('result-mode', s.modeName ? ('模式：' + s.modeName) : '');
     setText('result-combo', String(s.maxCombo));
-    setText('result-high', String(MiniGames.getHighScore('iaijutsu')));
-    setText('result-record', s.isNewHigh ? '🌟 新纪录！' : '历史最高：' + MiniGames.getHighScore('iaijutsu'));
+    setText('result-high', String(modeHigh));
+    setText('result-record', s.isNewHigh ? '🌟 新纪录！' : ('本模式最高：' + modeHigh));
     setText('result-reward', '💰 +' + s.rewardMoney + '   🔷 +' + s.rewardShards);
     setText('result-msg', s.msg || '⚔️ 居合断连 3 次，特训结束！');
     el.classList.remove('hidden');
@@ -286,7 +308,7 @@ var UI = {
       this.iaiTabUlt = document.getElementById('iai-tab-ultimate');
     }
     if (!this.iaiHubList || !window.MiniGames) return;
-    var high = MiniGames.getHighScore('iaijutsu') || 0;
+    var high = MiniGames.getUnlockScore ? MiniGames.getUnlockScore() : (MiniGames.getHighScore('iaijutsu') || 0);
     if (this.iaiHubHigh) this.iaiHubHigh.textContent = high;
 
     if (this.iaiHubRank) {

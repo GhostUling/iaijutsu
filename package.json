@@ -6,6 +6,6 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node tests/iaijutsu_golden.js"
+    "test": "node tests/iaijutsu_golden.js && node tests/iaijutsu_ex_test.js && node tests/iaijutsu_boss_test.js"
   }
 }

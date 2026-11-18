@@ -4,6 +4,8 @@
 var MiniGames = {
   active: false,
   currentGame: null,
+  modeId: 'classic',        // 'classic' = 原版；'ex' = 异靶乱舞
+  lastModeId: 'classic',
   lockedWeapon: null,
   _forcingWeapon: false,
   finished: false,
@@ -18,6 +20,11 @@ var MiniGames = {
   particles: [],
   floatingTexts: [],
   lastSummary: null,
+
+  // 模式实现（原版对象在启动时被临时替换，离场时还原，保证原版文件零改动）
+  _baseModeImpl: window.IaijutsuMode,
+  _baseTargetsImpl: window.IaijutsuTargets,
+  _modeImplApplied: false,
 
   // 与 game4 完全相同的世界坐标基准（保证靶子分布/相机计算一致）
   BASE_X: 63000,
@@ -38,6 +45,75 @@ var MiniGames = {
     }
   },
 
+  // 两种模式的展示信息与记录键（战斗逻辑共用 META.iaijutsu 的宿主规则）
+  MODE_META: {
+    classic: {
+      id: 'classic',
+      name: '无限连闪 · 居合斩连锁',
+      shortName: '原版',
+      emoji: '⚔️',
+      tag: '原汁原味',
+      desc: '和街机厅里一模一样：三种靶、3 条命、充能满 100 开无我。',
+      highKey: 'arcade_iaijutsu_high',
+      unit: '连斩',
+      hudTitle: '',           // 留空 = 用 name
+      legend: '',             // 留空 = 不显示新靶速查
+      modeImpl: null,         // null = 原版 IaijutsuMode
+      targetsImpl: null       // null = 原版 IaijutsuTargets
+    },
+    ex: {
+      id: 'ex',
+      name: '无限连闪 · 异靶乱舞',
+      shortName: '异靶',
+      emoji: '🧪',
+      tag: '新靶型',
+      desc: '在原版基础上加入诱饵雷、铁壁、分裂、连锁四种靶。',
+      highKey: 'arcade_iaijutsu_ex_high',
+      unit: '连斩',
+      hudTitle: '异靶',
+      legend: '💣 勿斩   🗿 两刀   🪞 分裂   🔗 连锁补刀',
+      modeImpl: window.IaijutsuModeEx || null,
+      targetsImpl: window.IaijutsuTargetsEx || null
+    },
+    boss: {
+      id: 'boss',
+      name: '宿敌 · 居合一刀',
+      shortName: '宿敌',
+      emoji: '👹',
+      tag: 'BOSS 战',
+      desc: '一对一宿敌战：Boss 出招前有红色预告，用突进侧移躲开；收招后的破绽期砍它发光的弱点。',
+      highKey: 'arcade_iaijutsu_boss_high',
+      unit: '连斩',
+      hudTitle: '宿敌战',
+      legend: '💨 砍空=锁突进   ⚔️ 砍中刀魂/弱点=立刻再斩   🩸 红区=躲   🧿 空格心眼',
+      modeImpl: window.IaijutsuModeBoss || null,
+      targetsImpl: window.IaijutsuTargetsBoss || null
+    }
+  },
+
+  getModeMeta: function (modeId) {
+    return this.MODE_META[modeId || this.modeId] || this.MODE_META.classic;
+  },
+
+  getModeHighScore: function (modeId) {
+    var meta = this.getModeMeta(modeId);
+    try {
+      var val = localStorage.getItem(meta.highKey);
+      return val ? parseInt(val, 10) || 0 : 0;
+    } catch (e) {
+      return 0;
+    }
+  },
+
+  // 皮肤/奥义解锁取三种模式的最高连斩，进度互通
+  getUnlockScore: function () {
+    return Math.max(
+      this.getModeHighScore('classic'),
+      this.getModeHighScore('ex'),
+      this.getModeHighScore('boss')
+    );
+  },
+
   getHighScore: function (gameId) {
     var meta = this.META[gameId];
     if (!meta) return 0;
@@ -49,13 +125,15 @@ var MiniGames = {
     }
   },
 
+  // 记录按当前模式落盘（原版 onKill 里写死 'iaijutsu' 的调用也走这里）
   saveHighScore: function (gameId, score) {
     var meta = this.META[gameId];
     if (!meta) return false;
-    var prev = this.getHighScore(gameId);
+    var modeMeta = this.getModeMeta();
+    var prev = this.getModeHighScore();
     if (score > prev) {
       try {
-        localStorage.setItem(meta.highKey, score.toString());
+        localStorage.setItem(modeMeta.highKey, score.toString());
       } catch (e) {}
       return true;
     }
@@ -74,7 +152,7 @@ var MiniGames = {
     return window.IaijutsuSkins ? window.IaijutsuSkins.getEquippedSkin() : (this.IAI_SKINS[0] || {});
   },
   setEquippedIaiSkin: function (skinId) {
-    return window.IaijutsuSkins ? window.IaijutsuSkins.setEquippedSkin(skinId, this.getHighScore('iaijutsu')) : false;
+    return window.IaijutsuSkins ? window.IaijutsuSkins.setEquippedSkin(skinId, this.getUnlockScore()) : false;
   },
   getEquippedIaiBgSkinId: function () {
     return window.IaijutsuSkins ? window.IaijutsuSkins.getEquippedBgSkinId() : 'none';
@@ -83,7 +161,7 @@ var MiniGames = {
     return window.IaijutsuSkins ? window.IaijutsuSkins.getEquippedBgSkin() : { id: 'none' };
   },
   setEquippedIaiBgSkin: function (bgSkinId) {
-    return window.IaijutsuSkins ? window.IaijutsuSkins.setEquippedBgSkin(bgSkinId, this.getHighScore('iaijutsu')) : false;
+    return window.IaijutsuSkins ? window.IaijutsuSkins.setEquippedBgSkin(bgSkinId, this.getUnlockScore()) : false;
   },
   getEquippedIaiBgmId: function () {
     return window.IaijutsuSkins ? window.IaijutsuSkins.getEquippedBgmId() : 'default';
@@ -92,7 +170,7 @@ var MiniGames = {
     return window.IaijutsuSkins ? window.IaijutsuSkins.getEquippedBgm() : null;
   },
   setEquippedIaiBgm: function (bgmId) {
-    var ok = window.IaijutsuSkins ? window.IaijutsuSkins.setEquippedBgm(bgmId, this.getHighScore('iaijutsu')) : false;
+    var ok = window.IaijutsuSkins ? window.IaijutsuSkins.setEquippedBgm(bgmId, this.getUnlockScore()) : false;
     if (ok && window.SFX && SFX._iaijutsuBgmPlaying) {
       SFX.playIaijutsuBgm(bgmId);
     }
@@ -132,11 +210,16 @@ var MiniGames = {
   },
 
   // ========================== 启动 ==========================
-  start: function (gameId) {
+  // modeId: 'classic' 原版 / 'ex' 异靶乱舞（只切换靶型与结算记录，不改主循环）
+  start: function (gameId, modeId) {
     gameId = gameId || 'iaijutsu';
     if (!this.META[gameId]) return;
+    this.modeId = this.MODE_META[modeId] ? modeId : 'classic';
+    this.lastModeId = this.modeId;
+    this._applyModeImpl();
     try {
       localStorage.setItem('arcade_' + gameId + '_played', 'true');
+      localStorage.setItem('arcade_' + gameId + '_' + this.modeId + '_played', 'true');
       localStorage.setItem('arcade_any_played', 'true');
     } catch (e) {}
 
@@ -181,8 +264,23 @@ var MiniGames = {
     this._forcingWeapon = false;
 
     SFX.play('portal');
-    var meta = this.META[gameId];
+    var meta = this.getModeMeta();
     UI.flashBanner(meta.emoji + ' ' + meta.name + ' · 特训开始！', 2.8);
+  },
+
+  // 把 window.IaijutsuMode / IaijutsuTargets 临时指向对应实现，
+  // 这样原版模块内部的 this.xxx 与 IaijutsuUltimates 里的全局调用都会走新模式。
+  _applyModeImpl: function () {
+    var meta = this.getModeMeta();
+    window.IaijutsuMode = meta.modeImpl || this._baseModeImpl;
+    window.IaijutsuTargets = meta.targetsImpl || this._baseTargetsImpl;
+    this._modeImplApplied = !!(meta.modeImpl || meta.targetsImpl);
+  },
+
+  _restoreModeImpl: function () {
+    window.IaijutsuMode = this._baseModeImpl;
+    window.IaijutsuTargets = this._baseTargetsImpl;
+    this._modeImplApplied = false;
   },
 
   _initIaijutsu: function () {
@@ -217,6 +315,8 @@ var MiniGames = {
     if (window.IaijutsuUltimates && window.IaijutsuUltimates.cleanup) {
       window.IaijutsuUltimates.cleanup(this);
     }
+    // 还原全局实现，避免下一次启动仍指向异靶版
+    this._restoreModeImpl();
 
     if (window.UI && UI.onRunLeft) UI.onRunLeft();
   },
@@ -231,7 +331,7 @@ var MiniGames = {
     var gameId = this.currentGame;
     var finalVal = this.maxCombo;
     var isNewHigh = this.saveHighScore(gameId, finalVal);
-    var meta = this.META[gameId];
+    var meta = this.getModeMeta();
 
     var rewardMoney = Math.min(300, Math.max(20, Math.floor(finalVal * 2)));
     var rewardShards = Math.min(25, Math.max(2, Math.floor(finalVal / 4)));
@@ -243,6 +343,9 @@ var MiniGames = {
       isNewHigh: isNewHigh,
       rewardMoney: rewardMoney,
       rewardShards: rewardShards,
+      modeId: this.modeId,
+      modeName: meta.name,
+      result: result,
       msg: msg || ''
     };
 
@@ -627,8 +730,8 @@ var MiniGames = {
   _renderHud: function (ctx) {
     var room = this.room;
     var rx = room.worldX, ry = room.worldY;
-    var meta = this.META[this.currentGame] || {};
-    var high = this.getHighScore(this.currentGame);
+    var meta = this.getModeMeta();
+    var high = this.getModeHighScore();
 
     ctx.save();
     ctx.textAlign = 'left';
@@ -645,7 +748,9 @@ var MiniGames = {
     ctx.font = 'bold 18px "Segoe UI", sans-serif';
     ctx.fillStyle = '#f8fafc';
     var wLabel = ' [🔒太刀]';
-    ctx.fillText(meta.emoji + ' ' + (meta.name || '街机特训') + wLabel, rx + 36, ry + 28);
+    // 新模式可用短名，避免和右侧"连斩"状态在 960px 下挤在一起
+    var titleName = meta.hudTitle || meta.name || '街机特训';
+    ctx.fillText(meta.emoji + ' ' + titleName + wLabel, rx + 36, ry + 28);
 
     // 当前得分 / 状态数据
     ctx.font = 'bold 16px "Segoe UI", sans-serif';
@@ -670,11 +775,18 @@ var MiniGames = {
 
     statText = '连斩: ' + this.combo + tierTag + ' (最高 ' + this.maxCombo + ') | ' + stateDesc;
 
+    // 宿敌战：顶部一行本来就挤，去掉段位标签与无我提示，只留连斩/命数
+    if (this.modeId === 'boss') {
+      statText = '连斩: ' + this.combo + ' (最高 ' + this.maxCombo + ') | ' + heartStr +
+        ' 断连 ' + Math.max(0, 3 - curL) + '/3';
+    }
+
     ctx.fillStyle = (this.iaijutsuData && (this.iaijutsuData.ultimateTimer > 0 || this.iaijutsuData.frenzyTimer > 0)) ? '#fde047' : '#38bdf8';
     ctx.fillText(statText, rx + 280, ry + 29);
 
     // HUD 顶部居右显示【无CD无我: ON / OFF (按T或点击切换)】测试按钮
-    if (this.iaijutsuData) {
+    // 宿敌战封印无我，这个按钮只会误导，直接不画
+    if (this.iaijutsuData && this.modeId !== 'boss') {
       var isInfMode = !!this.iaijutsuData.infiniteUlt;
       var btnX = rx + CFG.W - 550;
       var btnY = ry + 22;
@@ -888,6 +1000,35 @@ var MiniGames = {
       ctx.textBaseline = 'middle';
       ctx.fillText(curSkin.emoji + ' 特效: ' + curSkin.name + ' [按B]', skX + 85, skY + 15);
       ctx.restore();
+
+      // 模式扩展信息（新靶速查；原版留空，保持界面一致）
+      if (meta.legend) {
+        ctx.save();
+        var lgX = rx + 24;
+        var lgY = ry + CFG.H - 44;
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.72)';
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
+        ctx.lineWidth = 1;
+        // 按文字实际宽度撑开，避免长速查条被裁掉
+        var lgW = 300;
+        try {
+          var lgM = ctx.measureText(meta.legend);
+          if (lgM && lgM.width) lgW = Math.max(300, lgM.width + 26);
+        } catch (e) {}
+
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(lgX, lgY, lgW, 26, 13);
+        else ctx.rect(lgX, lgY, lgW, 26);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.font = 'bold 11px "Segoe UI", sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#cbd5e1';
+        ctx.fillText(meta.legend, lgX + 12, lgY + 13);
+        ctx.restore();
+      }
     }
 
     // 连斩高光动态徽章
