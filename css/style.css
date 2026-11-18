@@ -1,0 +1,682 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #0b0e14;
+  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  color: #eef1f7;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+canvas {
+  display: block;
+  background: #0b0f19;
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 0 50px rgba(0, 0, 0, 0.9), 0 0 120px rgba(26, 40, 80, 0.25);
+}
+
+.hidden { display: none !important; }
+
+.panel-close { cursor: pointer; font-size: 15px; opacity: 0.7; padding: 0 4px; }
+.panel-close:hover { opacity: 1; }
+
+/* ---------- 通用覆盖层 ---------- */
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: rgba(8, 10, 16, 0.82);
+  backdrop-filter: blur(3px);
+  z-index: 20;
+}
+
+/* ---------- 顶部横幅 ---------- */
+.banner {
+  position: absolute;
+  top: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 28px;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #ffffff;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(8, 12, 22, 0.96) 100%);
+  border: 1px solid rgba(251, 191, 36, 0.55);
+  border-radius: 10px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 8px 30px rgba(0, 0, 0, 0.8), 0 0 24px rgba(245, 158, 11, 0.25);
+  z-index: 15;
+  pointer-events: none;
+  animation: pop-in 0.35s ease;
+  white-space: nowrap;
+}
+
+@keyframes pop-in {
+  from { opacity: 0; transform: translateX(-50%) scale(0.7); }
+  to   { opacity: 1; transform: translateX(-50%) scale(1); }
+}
+
+/* ---------- 居合斩专属准星 ---------- */
+#iaijutsu-reticle {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 36px;
+  height: 36px;
+  pointer-events: none;
+  z-index: 99999;
+  will-change: transform;
+  transform: translate3d(-100px, -100px, 0);
+  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.9));
+  transition: opacity 0.12s ease;
+}
+#iaijutsu-reticle.hidden { display: none !important; }
+#iaijutsu-reticle .reticle-svg { display: block; width: 100%; height: 100%; }
+
+/* ---------- 标题页 ---------- */
+.title-wrap {
+  width: min(720px, 92vw);
+  padding: 38px 42px 30px;
+  border-radius: 18px;
+  background: radial-gradient(120% 120% at 50% 0%, rgba(30, 58, 110, 0.55) 0%, rgba(8, 12, 22, 0.96) 60%);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8), 0 0 60px rgba(56, 189, 248, 0.12);
+  text-align: center;
+}
+
+.title-kicker {
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: #7dd3fc;
+  opacity: 0.9;
+  margin-bottom: 12px;
+}
+
+.title-main {
+  font-size: 54px;
+  line-height: 1.05;
+  letter-spacing: 2px;
+  color: #f8fafc;
+  text-shadow: 0 0 26px rgba(56, 189, 248, 0.45), 0 6px 24px rgba(0, 0, 0, 0.8);
+}
+
+.title-accent { color: #38bdf8; }
+
+.title-sub {
+  margin: 14px auto 0;
+  max-width: 540px;
+  font-size: 13.5px;
+  line-height: 1.75;
+  color: #94a3b8;
+}
+
+.title-stats {
+  display: grid;
+  grid-template-columns: 170px 1fr;
+  gap: 14px;
+  margin: 24px 0 22px;
+  text-align: left;
+}
+
+.title-stat {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.title-stat-label { font-size: 11px; letter-spacing: 1px; color: #7dd3fc; margin-bottom: 6px; }
+
+.title-stat-value { font-size: 15px; color: #e2e8f0; }
+.title-stat-value b { font-size: 30px; color: #fde047; text-shadow: 0 0 16px rgba(250, 204, 21, 0.45); }
+
+.title-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 10px;
+  font-size: 12.5px;
+  color: #cbd5e1;
+}
+.title-controls b { color: #f8fafc; }
+
+.title-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-primary, .btn-secondary, .btn-ghost {
+  font-family: inherit;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+  border: 1px solid transparent;
+}
+
+.btn-primary {
+  padding: 13px 30px;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #041018;
+  background: linear-gradient(135deg, #7dd3fc, #38bdf8 55%, #fde047);
+  box-shadow: 0 10px 28px rgba(56, 189, 248, 0.35);
+}
+.btn-primary small { font-size: 11px; font-weight: 600; opacity: 0.7; margin-left: 6px; }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 14px 34px rgba(56, 189, 248, 0.5); }
+
+.btn-secondary {
+  padding: 13px 22px;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #e2e8f0;
+  background: rgba(30, 41, 59, 0.9);
+  border-color: rgba(148, 163, 184, 0.35);
+}
+.btn-secondary:hover { background: rgba(51, 65, 85, 0.95); transform: translateY(-1px); }
+
+.btn-ghost {
+  padding: 13px 16px;
+  font-size: 13px;
+  color: #94a3b8;
+  background: transparent;
+  border-color: rgba(148, 163, 184, 0.25);
+}
+.btn-ghost:hover { color: #e2e8f0; }
+
+.title-foot { margin-top: 18px; font-size: 11.5px; letter-spacing: 1px; color: #64748b; }
+
+/* ---------- 结算页 ---------- */
+.result-wrap {
+  width: min(520px, 92vw);
+  padding: 30px 36px 26px;
+  border-radius: 16px;
+  background: radial-gradient(120% 120% at 50% 0%, rgba(76, 29, 29, 0.45) 0%, rgba(8, 12, 22, 0.97) 62%);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.85), 0 0 50px rgba(248, 113, 113, 0.12);
+  text-align: center;
+}
+
+.result-icon { font-size: 34px; }
+.result-title { margin-top: 4px; font-size: 26px; letter-spacing: 2px; color: #f8fafc; }
+.result-msg { margin-top: 8px; font-size: 13px; color: #fca5a5; }
+
+.result-combo-box {
+  margin: 20px 0 12px;
+  padding: 14px 0 12px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(250, 204, 21, 0.3);
+}
+.result-combo-label { font-size: 11px; letter-spacing: 2px; color: #fcd34d; }
+.result-combo b {
+  display: inline-block;
+  font-size: 62px;
+  line-height: 1.05;
+  color: #fde047;
+  text-shadow: 0 0 28px rgba(250, 204, 21, 0.55);
+}
+.result-combo span { font-size: 16px; color: #fcd34d; margin-left: 6px; }
+
+.result-line { font-size: 13.5px; color: #cbd5e1; margin-top: 4px; }
+.result-reward { color: #fcd34d; }
+
+.result-actions { display: flex; gap: 10px; justify-content: center; margin-top: 20px; }
+
+/* ===== 居合大殿（样式与 game4 一致，原样搬运） ===== */
+/* ---------- 居合斩专属特训大殿与视觉工坊面板 ---------- */
+#iaijutsu-hub,
+#iaijutsu-shop {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 55;
+  width: 780px;
+  max-width: 95vw;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  background: rgba(15, 23, 42, 0.98);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85), 0 0 35px rgba(56, 189, 248, 0.15);
+  pointer-events: auto;
+  overflow: hidden;
+}
+.iai-hub-header,
+.iai-shop-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #f8fafc;
+  background: linear-gradient(90deg, rgba(56, 189, 248, 0.15), rgba(250, 204, 21, 0.1));
+  border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+}
+.iai-hub-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.iai-hub-icon {
+  font-size: 22px;
+}
+.iai-hub-title-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.iai-hub-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+.iai-hub-subtitle {
+  font-size: 11px;
+  color: #38bdf8;
+  letter-spacing: 0.5px;
+}
+.iai-hub-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+  background: rgba(2, 6, 23, 0.55);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.iai-hub-hero-stat {
+  padding: 10px 14px;
+  background: rgba(30, 41, 59, 0.75);
+  border: 1px solid rgba(250, 204, 21, 0.35);
+  border-radius: 10px;
+  min-width: 140px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.iai-hub-stat-label {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-bottom: 2px;
+}
+.iai-hub-stat-val {
+  font-size: 13px;
+  color: #cbd5e1;
+}
+.iai-hub-stat-val b {
+  font-size: 26px;
+  font-weight: 800;
+  color: #facc15;
+  text-shadow: 0 0 12px rgba(250, 204, 21, 0.5);
+}
+.iai-hub-stat-unit {
+  font-size: 12px;
+  color: #ffd66b;
+  margin-left: 2px;
+}
+.iai-hub-stat-rank {
+  font-size: 11px;
+  font-weight: 700;
+  color: #38bdf8;
+  margin-top: 2px;
+}
+.iai-hub-hero-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.iai-hub-rule-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+.iai-hub-rule-desc {
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+.iai-hub-rule-desc b {
+  color: #facc15;
+}
+.iai-hub-hero-action {
+  flex-shrink: 0;
+}
+.iai-hub-start-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #020617;
+  background: linear-gradient(135deg, #facc15, #38bdf8);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(56, 189, 248, 0.35);
+  transition: all 0.16s ease;
+}
+.iai-hub-start-btn:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 6px 24px rgba(250, 204, 21, 0.5);
+}
+.iai-hub-tabs {
+  display: flex;
+  gap: 12px;
+  padding: 10px 20px 0;
+  background: rgba(15, 23, 42, 0.9);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.iai-hub-tab {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #94a3b8;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.14s ease;
+}
+.iai-hub-tab:hover {
+  color: #f1f5f9;
+}
+.iai-hub-tab.active {
+  color: #38bdf8;
+  border-bottom-color: #38bdf8;
+  text-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+}
+.iai-tab-count {
+  font-size: 10px;
+  padding: 1px 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: #cbd5e1;
+}
+.iai-hub-tab.active .iai-tab-count {
+  background: rgba(56, 189, 248, 0.25);
+  color: #38bdf8;
+}
+.iai-hub-content {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 280px;
+}
+.iai-shop-top {
+  padding: 12px 18px 8px;
+  background: rgba(0, 0, 0, 0.25);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.iai-shop-record {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffd66b;
+  margin-bottom: 4px;
+}
+.iai-shop-record b {
+  font-size: 18px;
+  color: #facc15;
+  text-shadow: 0 0 10px rgba(250, 204, 21, 0.5);
+}
+.iai-shop-hint {
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.45;
+}
+.iai-shop-grid {
+  padding: 14px 20px 18px;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+.iai-shop-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: rgba(30, 41, 59, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  transition: all 0.16s ease;
+  position: relative;
+}
+.iai-shop-card:hover {
+  background: rgba(30, 41, 59, 0.95);
+  border-color: rgba(56, 189, 248, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+.iai-shop-card.equipped {
+  border-color: #38bdf8;
+  background: rgba(56, 189, 248, 0.1);
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.25);
+}
+.iai-shop-card.locked {
+  opacity: 0.65;
+  background: rgba(15, 23, 42, 0.5);
+}
+.iai-shop-card-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.iai-shop-emoji {
+  font-size: 26px;
+}
+.iai-shop-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #f1f5f9;
+  flex: 1;
+}
+.iai-shop-tag {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+.iai-shop-desc {
+  font-size: 12px;
+  color: #cbd5e1;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+.iai-shop-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 8px;
+  margin-top: 4px;
+}
+.iai-shop-req {
+  font-size: 11px;
+  color: #94a3b8;
+}
+.iai-shop-req.unlocked {
+  color: #4ade80;
+}
+.iai-shop-equip-btn {
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  border: none;
+}
+.iai-shop-equip-btn.btn-equipped {
+  background: #22c55e;
+  color: #ffffff;
+  cursor: default;
+}
+.iai-shop-equip-btn.btn-equip {
+  background: linear-gradient(180deg, #38bdf8, #0284c7);
+  color: #ffffff;
+}
+.iai-shop-equip-btn.btn-equip:hover {
+  transform: scale(1.04);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+}
+.iai-shop-equip-btn.btn-locked {
+  background: rgba(255, 255, 255, 0.08);
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+/* 🎵 居合斩心流音律 / 音乐商店专属样式 */
+.iai-bgm-card {
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.iai-bgm-card.is-previewing {
+  border-color: rgba(56, 189, 248, 0.8) !important;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.35), inset 0 0 12px rgba(56, 189, 248, 0.1) !important;
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(8, 47, 73, 0.5)) !important;
+}
+.iai-preview-playing-tag {
+  display: inline-block;
+  font-size: 10px;
+  color: #38bdf8;
+  font-weight: 700;
+  margin-left: 6px;
+  animation: iaiPulsePlay 1.2s infinite ease-in-out;
+}
+@keyframes iaiPulsePlay {
+  0%, 100% { opacity: 0.6; transform: scale(0.96); }
+  50% { opacity: 1; transform: scale(1.04); }
+}
+
+.iai-shop-filepath {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+}
+.iai-filepath-icon {
+  font-size: 11px;
+  opacity: 0.8;
+}
+.iai-filepath-code {
+  font-family: 'JetBrains Mono', Consolas, Monaco, monospace;
+  font-size: 10px;
+  color: #93c5fd;
+  word-break: break-all;
+  user-select: all;
+}
+
+.iai-bgm-action-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.iai-shop-preview-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 6px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.15s ease;
+}
+.iai-shop-preview-btn:hover {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: #38bdf8;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+.iai-shop-preview-btn.playing {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  border-color: #fbbf24;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.6);
+  animation: iaiBtnPulse 1s infinite alternate;
+}
+@keyframes iaiBtnPulse {
+  from { transform: scale(1); }
+  to { transform: scale(1.05); }
+}
+
+.iai-hub-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: rgba(2, 6, 23, 0.7);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 12px;
+}
+.iai-hub-footer-hint {
+  font-size: 11px;
+  color: #94a3b8;
+  line-height: 1.4;
+  flex: 1;
+}
+.iai-hub-footer-hint b {
+  color: #facc15;
+}
+.iai-hub-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.iai-hub-btn-sec {
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.iai-hub-btn-sec:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+.iai-hub-btn-pri {
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #020617;
+  background: linear-gradient(135deg, #facc15, #38bdf8);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.iai-hub-btn-pri:hover {
+  transform: translateY(-1px);

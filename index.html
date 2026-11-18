@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>居合斩 · 无限连闪</title>
+<link rel="stylesheet" href="css/style.css?v=2">
+</head>
+<body>
+  <div id="stage">
+    <canvas id="game" width="960" height="540"></canvas>
+
+    <!-- 居合斩专属高可见度电竞准星（DOM 元素，硬件级零延迟跟随） -->
+    <div id="iaijutsu-reticle" class="iaijutsu-reticle hidden" aria-hidden="true">
+      <svg class="reticle-svg" viewBox="0 0 36 36" width="36" height="36">
+        <circle cx="18" cy="18" r="11" fill="none" stroke="#000000" stroke-width="4.8" />
+        <circle id="reticle-ring" cx="18" cy="18" r="11" fill="none" stroke="#38bdf8" stroke-width="2.0" />
+        <path d="M18 2v8M18 26v8M2 18h8M26 18h8" stroke="#000000" stroke-width="4.8" stroke-linecap="round" />
+        <path id="reticle-cross" d="M18 3.5v6M18 26.5v6M3.5 18h6M26.5 18h6" stroke="#38bdf8" stroke-width="2.0" stroke-linecap="round" />
+        <circle cx="18" cy="18" r="2.8" fill="#000000" />
+        <circle id="reticle-dot" cx="18" cy="18" r="1.4" fill="#ffffff" />
+      </svg>
+    </div>
+
+    <!-- 顶部横幅 -->
+    <div id="wave-banner" class="banner hidden"></div>
+
+    <!-- 标题页 -->
+    <div id="title-screen" class="overlay">
+      <div class="title-wrap">
+        <div class="title-kicker">⚔️ IAIJUTSU · 一击必杀的呼吸</div>
+        <h1 class="title-main">居合斩<span class="title-accent">·</span>无限连闪</h1>
+        <p class="title-sub">斩中即续航：命中立刻刷新突进冷却。挥空或超时会断连，三次断连，特训结束。</p>
+
+        <div class="title-stats">
+          <div class="title-stat">
+            <div class="title-stat-label">🏆 历史最高</div>
+            <div class="title-stat-value"><b id="title-high">0</b> <span>连斩</span></div>
+          </div>
+          <div class="title-stat">
+            <div class="title-stat-label">🎮 操作</div>
+            <div class="title-controls">
+              <span><b>左键</b> 朝光标突进出刀</span>
+              <span><b>右键</b> 原地挥砍</span>
+              <span><b>空格</b> 无我大招</span>
+              <span><b>B</b> 皮肤工坊</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="title-actions">
+          <button type="button" id="title-start-btn" class="btn-primary">⚔️ 拔刀出鞘 <small>空格 / 点击</small></button>
+          <button type="button" id="title-hub-btn" class="btn-secondary">🏮 皮肤工坊</button>
+          <button type="button" id="title-mute-btn" class="btn-ghost">🔊 静音 M</button>
+        </div>
+        <div class="title-foot">刀痕 · 道场 · 无我奥义，靠连斩纪录解锁</div>
+      </div>
+    </div>
+
+    <!-- 结算页 -->
+    <div id="result-screen" class="overlay hidden">
+      <div class="result-wrap">
+        <div class="result-icon">🎯</div>
+        <h2 class="result-title">特训结束</h2>
+        <div id="result-msg" class="result-msg">⚔️ 居合断连 3 次，特训结束！</div>
+
+        <div class="result-combo-box">
+          <div class="result-combo-label">本局最高连斩</div>
+          <div class="result-combo"><b id="result-combo">0</b><span>连</span></div>
+        </div>
+
+        <div class="result-line"><span id="result-record">历史最高：0</span></div>
+        <div class="result-line result-reward" id="result-reward">💰 +0   🔷 +0</div>
+
+        <div class="result-actions">
+          <button type="button" id="result-retry-btn" class="btn-primary">⚔️ 再来一局 <small>空格</small></button>
+          <button type="button" id="result-back-btn" class="btn-secondary">↩ 主菜单</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 居合心流 · 极境特训大殿（刀痕 / 道场 / 无我奥义） -->
+    <div id="iaijutsu-hub" class="hidden">
+      <div class="iai-hub-header">
+        <div class="iai-hub-title-group">
+          <span class="iai-hub-icon">🗡️</span>
+          <div class="iai-hub-title-text">
+            <span class="iai-hub-title">居合心流 · 极境特训大殿</span>
+            <span class="iai-hub-subtitle">Iaijutsu Dojo & Customization Workshop</span>
+          </div>
+        </div>
+        <span id="iai-hub-close" class="panel-close" title="关闭">✕</span>
+      </div>
+
+      <div class="iai-hub-hero">
+        <div class="iai-hub-hero-stat">
+          <div class="iai-hub-stat-label">🏆 居合最高纪录</div>
+          <div class="iai-hub-stat-val"><b id="iai-hub-high">0</b> <span class="iai-hub-stat-unit">连斩</span></div>
+          <div class="iai-hub-stat-rank" id="iai-hub-rank">初入剑道</div>
+        </div>
+        <div class="iai-hub-hero-info">
+          <div class="iai-hub-rule-title">⚡ 极意口诀 · 心流出鞘</div>
+          <div class="iai-hub-rule-desc">朝光标 <b>左键</b> 突进出刀，斩中靶子立即刷新冷却；<b>右键</b> 原地挥砍清场；充能满 100 点按 <b>空格</b> 释放【无我】大招。挥空或超时会让小猪手发力，3 次断连特训结束！</div>
+        </div>
+        <div class="iai-hub-hero-action">
+          <button type="button" id="iai-hub-start-btn" class="iai-hub-start-btn">
+            <span class="iai-start-icon">⚔️</span>
+            <span class="iai-start-txt">开始特训</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="iai-hub-tabs">
+        <button type="button" class="iai-hub-tab active" data-tab="slash" id="iai-tab-slash">
+          <span>🗡️ 刀痕光刃皮肤</span>
+          <span class="iai-tab-count" id="iai-slash-count">8 款</span>
+        </button>
+        <button type="button" class="iai-hub-tab" data-tab="bg" id="iai-tab-bg">
+          <span>🏮 道场背景特效</span>
+          <span class="iai-tab-count" id="iai-bg-count">5 款</span>
+        </button>
+        <button type="button" class="iai-hub-tab" data-tab="bgm" id="iai-tab-bgm">
+          <span>🎵 居合心流音律</span>
+          <span class="iai-tab-count" id="iai-bgm-count">6 首</span>
+        </button>
+        <button type="button" class="iai-hub-tab" data-tab="ultimate" id="iai-tab-ultimate">
+          <span>⚡ 无我绝杀奥义</span>
+          <span class="iai-tab-count" id="iai-ult-count">6 款</span>
+        </button>
+      </div>
+
+      <div class="iai-hub-content">
+        <div id="iai-hub-list" class="iai-shop-grid"></div>
+      </div>
+
+      <div class="iai-hub-footer">
+        <div class="iai-hub-footer-hint">💡 达成更高连斩纪录即可免费解锁对应刀痕、背景与专属BGM，支持随时试听与无缝换曲。特训中按 <b>B</b> 可随时打开本页面（会暂停对决）。</div>
+        <div class="iai-hub-footer-actions">
+          <button type="button" id="iai-hub-back-arcade" class="iai-hub-btn-sec">↩ 主菜单</button>
+          <button type="button" id="iai-hub-launch-bottom" class="iai-hub-btn-pri">⚡ 拔刀出鞘</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/load_order.js?v=2"></script>
+  <script>
+    (function () {
+      var list = window.GAME_LOAD_ORDER || [];
+      for (var i = 0; i < list.length; i++) {
+        document.write('<script src="' + list[i] + '?v=' + window.GAME_ASSET_VER + '"><\/script>');
+      }
+    })();
+  </script>
+  <script>
+    // 标题 / 结算页的键盘操作：空格开局、Esc 返回
+    window.addEventListener('keydown', function (e) {
+      if (e.code === 'Space') {
+        var title = document.getElementById('title-screen');
+        var result = document.getElementById('result-screen');
+        if (title && !title.classList.contains('hidden')) { e.preventDefault(); UI.beginRun(); return; }
+        if (result && !result.classList.contains('hidden')) { e.preventDefault(); UI.beginRun(); return; }
+      }
+      if (e.code === 'Escape') {
+        var r = document.getElementById('result-screen');
+        if (r && !r.classList.contains('hidden')) { UI.showTitle(); }
+      }
+    });
+  </script>
+</body>
+</html>

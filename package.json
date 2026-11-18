@@ -1,0 +1,11 @@
+{
+  "name": "iaijutsu-standalone",
+  "version": "1.0.0",
+  "description": "居合斩 · 无限连闪（从 Emoji 地牢街机厅独立出来的单机版）",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node tests/iaijutsu_golden.js"
+  }
+}

@@ -1,0 +1,26 @@
+# ---------- 系统 / 编辑器 ----------
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.log
+.vscode/
+.idea/
+
+# ---------- 依赖与构建产物 ----------
+node_modules/
+dist/
+
+# ---------- 测试产物 ----------
+# 基准测试默认不落盘；需要逐行轨迹时 IAI_TRACE=1 生成，属于临时文件
+tests/*.trace.txt
+
+# ---------- 音频资源（体积大，不入库，本地自备） ----------
+# 需要的 9 个文件清单见 assets/audio/README.md，来源：game4/assets/audio/
+*.mp3
+*.wav
+*.ogg
+*.m4a
+*.flac
+
+# ---------- WorkBuddy 工作区数据（记忆 / 日志，不进游戏仓库） ----------
+.workbuddy/
