@@ -91,8 +91,8 @@ canvas {
 /* ---------- 标题页 ---------- */
 .title-wrap {
   position: relative;
-  width: min(720px, 92vw);
-  padding: 38px 42px 30px;
+  width: min(780px, 94vw);
+  padding: 34px 36px 26px;
   border-radius: 18px;
   background: radial-gradient(120% 120% at 50% 0%, rgba(30, 58, 110, 0.55) 0%, rgba(8, 12, 22, 0.96) 60%);
   border: 1px solid rgba(56, 189, 248, 0.35);
@@ -120,7 +120,7 @@ canvas {
 
 .title-sub {
   margin: 14px auto 0;
-  max-width: 540px;
+  max-width: 560px;
   font-size: 13.5px;
   line-height: 1.75;
   color: #94a3b8;
@@ -128,9 +128,9 @@ canvas {
 
 .title-stats {
   display: grid;
-  grid-template-columns: 170px 1fr;
+  grid-template-columns: 230px 1fr;
   gap: 14px;
-  margin: 24px 0 22px;
+  margin: 20px 0 18px;
   text-align: left;
 }
 
@@ -773,8 +773,98 @@ canvas {
 }
 .title-tools .btn-ghost { padding: 7px 12px; font-size: 11.5px; }
 
-/* 三个模式按钮等宽一点，视觉更整齐 */
-#title-start-btn, #title-start-ex-btn, #title-start-boss-btn { flex: 1 1 0; min-width: 150px; }
+/* 四个模式按钮等宽单行，视觉整齐 */
+#title-start-btn, #title-start-ex-btn, #title-start-boss-btn, #title-start-chase-btn {
+  flex: 1 1 0;
+  min-width: 148px;
+  white-space: nowrap;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+/* ---------- 追逐战入口与双模式分段切换 ---------- */
+.btn-chase {
+  padding: 13px 18px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #fefce8;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.42), rgba(220, 38, 38, 0.36));
+  border: 1px solid rgba(251, 146, 60, 0.78);
+  border-radius: 9px;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(249, 115, 22, 0.24);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  white-space: nowrap;
+}
+.btn-chase small {
+  font-size: 10.5px;
+  font-weight: 700;
+  opacity: 0.88;
+  margin-left: 4px;
+  color: #fde68a;
+}
+.btn-chase:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(249, 115, 22, 0.42); }
+
+.mode-tag-chase { background: rgba(249, 115, 22, 0.22); color: #fdba74; }
+.title-record b { font-variant-numeric: tabular-nums; }
+.title-chase-rec { font-size: 12px; color: #cbd5e1; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.title-chase-rec b { font-size: 16px; color: #fde047; }
+.title-rec-sep { color: #64748b; margin: 0 2px; }
+
+.mode-options-row {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+}
+
+.chase-variant-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.chase-variant-label {
+  font-size: 12px;
+  color: #94a3b8;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.chase-variant-seg {
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+}
+.chase-seg-btn {
+  padding: 5px 11px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: #94a3b8;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+.chase-seg-btn:hover { color: #f8fafc; }
+.chase-seg-btn.active {
+  color: #fff7ed;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.55), rgba(220, 38, 38, 0.48));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+.boss-seg-btn.active {
+  color: #fff1f2;
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.62), rgba(124, 58, 237, 0.48));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
 
 /* 覆盖早前给静音按钮写的绝对定位（现在由 .title-tools 容器统一摆放） */
 #title-mute-btn {
@@ -783,5 +873,421 @@ canvas {
   right: auto;
 }
 
-/* 按钮文案不换行 */
-#title-start-btn, #title-start-ex-btn, #title-start-boss-btn { white-space: nowrap; padding-left: 14px; padding-right: 14px; }
+/* ---------- 独立宿敌选敌页 ---------- */
+.boss-select-wrap {
+  width: min(880px, 95vw);
+  max-height: 92vh;
+  overflow-y: auto;
+  padding: 22px 24px 20px;
+  border-radius: 16px;
+  background: radial-gradient(120% 110% at 50% 0%, rgba(127, 29, 29, 0.34) 0%, rgba(8, 12, 22, 0.98) 58%);
+  border: 1px solid rgba(244, 63, 94, 0.42);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.9), 0 0 60px rgba(244, 63, 94, 0.14);
+}
+.boss-select-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.boss-select-kicker {
+  font-size: 11px;
+  letter-spacing: 2.5px;
+  color: #fda4af;
+  margin-bottom: 3px;
+}
+.boss-select-title {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #f8fafc;
+}
+.boss-close-btn {
+  padding: 8px 14px;
+  font-size: 12.5px;
+}
+
+.boss-select-rules {
+  margin-top: 12px;
+  padding: 8px 14px;
+  border-radius: 9px;
+  background: rgba(15, 23, 42, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px 14px;
+  font-size: 12px;
+  color: #cbd5e1;
+}
+.boss-select-rules .rule-gold { color: #fde047; }
+.boss-select-rules .rule-red { color: #f87171; }
+.boss-select-rules .rule-warn { color: #fb923c; }
+
+.boss-select-grid {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.boss-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 14px 12px;
+  border-radius: 12px;
+  background: rgba(13, 20, 36, 0.88);
+  border: 1.5px solid rgba(148, 163, 184, 0.22);
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  text-align: left;
+}
+.boss-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--boss-main, #f43f5e);
+}
+.boss-card.selected {
+  border-color: var(--boss-main, #f43f5e);
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.92), rgba(10, 15, 28, 0.96));
+  box-shadow: 0 0 0 1px var(--boss-main, #f43f5e), 0 12px 32px rgba(0, 0, 0, 0.55), 0 0 28px var(--boss-glow, rgba(244, 63, 94, 0.25));
+}
+
+.boss-card-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.boss-portrait {
+  width: 58px;
+  height: 58px;
+  border-radius: 10px;
+  background: radial-gradient(circle at 50% 42%, var(--boss-glow, rgba(244, 63, 94, 0.35)), rgba(9, 13, 24, 0.95));
+  border: 1px solid var(--boss-main, #f43f5e);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.boss-card-head { flex: 1; min-width: 0; }
+.boss-card-badge-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.boss-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #fff;
+  background: var(--boss-main, #f43f5e);
+}
+.boss-stars {
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: #fde047;
+}
+.boss-card-name {
+  margin-top: 4px;
+  font-size: 16px;
+  font-weight: 800;
+  color: #f8fafc;
+}
+.boss-card-quote {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 1px;
+}
+
+.boss-card-stats {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+.boss-stat-chip {
+  flex: 1;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(2, 6, 23, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  color: #cbd5e1;
+  text-align: center;
+}
+.boss-stat-chip b { color: #f8fafc; margin-left: 3px; }
+
+.boss-card-desc {
+  margin-top: 8px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: #94a3b8;
+  min-height: 35px;
+}
+
+.boss-moves-list {
+  margin-top: 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+}
+.boss-move-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 4px 7px;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  font-size: 11.5px;
+}
+.boss-move-name { color: #e2e8f0; font-weight: 600; white-space: nowrap; }
+.boss-move-tag {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.boss-move-tag.parry { background: rgba(250, 204, 21, 0.2); color: #fde047; }
+.boss-move-tag.danger { background: rgba(239, 68, 68, 0.24); color: #fca5a5; }
+.boss-move-tag.slice { background: rgba(56, 189, 248, 0.2); color: #7dd3fc; }
+
+.boss-card-rec {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: #94a3b8;
+  font-variant-numeric: tabular-nums;
+}
+.boss-card-rec b { color: #fde047; }
+
+.boss-card-go {
+  margin-top: 9px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg, var(--boss-main, #f43f5e), var(--boss-sub, #7c3aed));
+  border: none;
+  cursor: pointer;
+  transition: filter 0.14s ease, transform 0.12s ease;
+}
+.boss-card-go:hover { filter: brightness(1.12); transform: translateY(-1px); }
+
+.boss-select-footer {
+  margin-top: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.boss-launch-btn {
+  padding: 11px 24px;
+  font-size: 15px;
+}
+
+@media (max-width: 760px) {
+  .boss-select-grid { grid-template-columns: 1fr; }
+}
+
+/* ---------- 宿敌战 · 交互式新手教程 ---------- */
+.boss-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btn-tutorial {
+  padding: 9px 15px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  color: #e0f2fe;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.36), rgba(16, 185, 129, 0.28));
+  border: 1px solid rgba(56, 189, 248, 0.72);
+  border-radius: 9px;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.22);
+  transition: transform 0.14s cubic-bezier(0.16, 1, 0.3, 1), filter 0.14s ease;
+}
+.btn-tutorial small {
+  margin-left: 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #fde68a;
+}
+.btn-tutorial:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.12);
+}
+
+.boss-tut-hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 12px 16px 14px;
+}
+.boss-tut-hud.hidden { display: none; }
+
+.boss-tut-top-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.boss-tut-btn {
+  pointer-events: auto;
+  padding: 7px 13px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: #e2e8f0;
+  background: rgba(15, 23, 42, 0.88);
+  border: 1px solid rgba(148, 163, 184, 0.36);
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+.boss-tut-btn:hover { transform: translateY(-1px); color: #ffffff; border-color: rgba(56, 189, 248, 0.75); }
+.boss-tut-btn-exit { border-color: rgba(248, 113, 113, 0.45); color: #fecaca; }
+
+.boss-tut-card {
+  width: min(760px, 94vw);
+  margin: 0 auto;
+  padding: 12px 16px 11px;
+  border-radius: 12px;
+  background: rgba(8, 13, 24, 0.88);
+  border: 1px solid rgba(56, 189, 248, 0.42);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
+}
+.boss-tut-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  font-size: 13px;
+}
+.boss-tut-step {
+  font-weight: 800;
+  color: #38bdf8;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.boss-tut-sep { color: #64748b; }
+.boss-tut-title {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #f8fafc;
+}
+.boss-tut-key {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fde047;
+  white-space: nowrap;
+}
+.boss-tut-progress {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #cbd5e1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.boss-tut-progress.done { color: #34d399; }
+
+.boss-tut-bars {
+  margin-top: 7px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+}
+.boss-tut-bar {
+  height: 4px;
+  border-radius: 3px;
+  background: rgba(148, 163, 184, 0.22);
+}
+.boss-tut-bar.active { background: #38bdf8; }
+.boss-tut-bar.done { background: #34d399; }
+
+.boss-tut-desc {
+  margin-top: 7px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #cbd5e1;
+}
+.boss-tut-tip {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #7dd3fc;
+}
+.boss-tut-tip.tip-warn { color: #fbbf24; }
+.boss-tut-tip.tip-good { color: #34d399; }
+
+/* 教程毕业弹窗 */
+.tut-done-wrap {
+  width: min(560px, 92vw);
+  padding: 26px 28px 24px;
+  border-radius: 16px;
+  background: radial-gradient(110% 100% at 50% 0%, rgba(14, 165, 233, 0.24) 0%, rgba(9, 13, 24, 0.98) 62%);
+  border: 1px solid rgba(56, 189, 248, 0.46);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.9);
+  text-align: center;
+}
+.tut-done-icon { font-size: 42px; line-height: 1; }
+.tut-done-title {
+  margin-top: 10px;
+  font-size: 24px;
+  font-weight: 800;
+  color: #f8fafc;
+}
+.tut-done-sub {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #94a3b8;
+}
+.tut-done-recap {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #cbd5e1;
+}
+.tut-done-recap b { color: #fde047; }
+.tut-done-actions {
+  margin-top: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+

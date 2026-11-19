@@ -6,6 +6,7 @@ var MiniGames = {
   currentGame: null,
   modeId: 'classic',        // 'classic' = 原版；'ex' = 异靶乱舞
   lastModeId: 'classic',
+  selectedBossId: 'random', // 'random' | 'mumyo' | 'akaoni' | 'byakuya'
   lockedWeapon: null,
   _forcingWeapon: false,
   finished: false,
@@ -77,17 +78,63 @@ var MiniGames = {
     },
     boss: {
       id: 'boss',
-      name: '宿敌 · 居合一刀',
+      name: '宿敌 · 居合对决',
       shortName: '宿敌',
       emoji: '👹',
       tag: 'BOSS 战',
-      desc: '一对一宿敌战：Boss 出招前有红色预告，用突进侧移躲开；收招后的破绽期砍它发光的弱点。',
+      desc: '一对一高燃剑戟对决：识破金光闪现用【空格】心眼或突进触发完美见切，打满架势一刀处决！',
       highKey: 'arcade_iaijutsu_boss_high',
+      bestTimeKey: 'arcade_iaijutsu_boss_best_time',
+      bestRankKey: 'arcade_iaijutsu_boss_best_rank',
       unit: '连斩',
-      hudTitle: '宿敌战',
-      legend: '💨 砍空=锁突进   ⚔️ 砍中刀魂/弱点=立刻再斩   🩸 红区=躲   🧿 空格心眼',
+      hudTitle: '宿敌对决',
+      legend: '✦ 金光=按【空格】心眼见切   危=不可弹反必闪避   ⚡ 满架势=一刀处决   ⛔ 蓄力别硬撞',
       modeImpl: window.IaijutsuModeBoss || null,
       targetsImpl: window.IaijutsuTargetsBoss || null
+    },
+    boss_tutorial: {
+      id: 'boss_tutorial',
+      name: '宿敌道场 · 新手教程',
+      shortName: '宿敌教程',
+      emoji: '📖',
+      tag: '5 课实战教学',
+      desc: '零死亡风险互动教学：5 步掌握破绽弱点、躲避危字杀招、金光空格心眼见切、斩碎飞刃与居合处决。',
+      highKey: 'arcade_iaijutsu_boss_high',
+      unit: '连斩',
+      hudTitle: '宿敌道场 · 新手特训',
+      legend: '',
+      modeImpl: window.IaijutsuModeBossTutorial || null,
+      targetsImpl: null
+    },
+    chase_escape: {
+      id: 'chase_escape',
+      name: '鬼影追猎 · 终点逃脱',
+      shortName: '追逐·逃脱',
+      emoji: '🏃',
+      tag: '1500m 冲线',
+      desc: '横向长廊逃亡：切靶瞬刷突进冷却，挥空仅陷入短暂冷却，躲避噬影鬼三大封路技能冲过 1500m 鸟居！',
+      highKey: 'arcade_iaijutsu_chase_escape_high',
+      bestTimeKey: 'arcade_iaijutsu_chase_escape_best_time',
+      unit: '连斩',
+      hudTitle: '鬼影追猎 · 逃脱',
+      legend: '',
+      modeImpl: window.IaijutsuModeChase || null,
+      targetsImpl: null
+    },
+    chase_endless: {
+      id: 'chase_endless',
+      name: '鬼影追猎 · 无尽逃亡',
+      shortName: '追逐·无尽',
+      emoji: '♾️',
+      tag: '无尽冲榜',
+      desc: '永夜长廊无尽死逃：距离越远噬影鬼越快、技能越密，靠连闪切靶冲击最远逃亡纪录！',
+      highKey: 'arcade_iaijutsu_chase_endless_high',
+      comboHighKey: 'arcade_iaijutsu_chase_endless_combo',
+      unit: 'm',
+      hudTitle: '鬼影追猎 · 无尽',
+      legend: '',
+      modeImpl: window.IaijutsuModeChase || null,
+      targetsImpl: null
     }
   },
 
@@ -105,12 +152,125 @@ var MiniGames = {
     }
   },
 
-  // 皮肤/奥义解锁取三种模式的最高连斩，进度互通
+  getChaseEscapeBestTime: function () {
+    var meta = this.MODE_META.chase_escape;
+    if (!meta || !meta.bestTimeKey) return 0;
+    try {
+      var val = parseFloat(localStorage.getItem(meta.bestTimeKey));
+      return (val && val > 0 && isFinite(val)) ? val : 0;
+    } catch (e) {
+      return 0;
+    }
+  },
+
+  saveChaseEscapeBestTime: function (sec) {
+    var meta = this.MODE_META.chase_escape;
+    if (!meta || !meta.bestTimeKey || !sec || sec <= 0) return false;
+    var prev = this.getChaseEscapeBestTime();
+    if (!prev || sec < prev) {
+      try {
+        localStorage.setItem(meta.bestTimeKey, sec.toFixed(2));
+      } catch (e) {}
+      return true;
+    }
+    return false;
+  },
+
+  getBossBestTime: function () {
+    var meta = this.MODE_META.boss;
+    if (!meta || !meta.bestTimeKey) return 0;
+    try {
+      var val = parseFloat(localStorage.getItem(meta.bestTimeKey));
+      return (val && val > 0 && isFinite(val)) ? val : 0;
+    } catch (e) {
+      return 0;
+    }
+  },
+
+  saveBossBestTime: function (sec) {
+    var meta = this.MODE_META.boss;
+    if (!meta || !meta.bestTimeKey || !sec || sec <= 0) return false;
+    var prev = this.getBossBestTime();
+    if (!prev || sec < prev) {
+      try {
+        localStorage.setItem(meta.bestTimeKey, sec.toFixed(2));
+      } catch (e) {}
+      return true;
+    }
+    return false;
+  },
+
+  getBossBestRank: function () {
+    var meta = this.MODE_META.boss;
+    if (!meta || !meta.bestRankKey) return '';
+    try {
+      return localStorage.getItem(meta.bestRankKey) || '';
+    } catch (e) {
+      return '';
+    }
+  },
+
+  saveBossBestRank: function (rank) {
+    var meta = this.MODE_META.boss;
+    if (!meta || !meta.bestRankKey || !rank) return false;
+    var order = { S: 4, A: 3, B: 2, C: 1 };
+    var prev = this.getBossBestRank();
+    if ((order[rank] || 0) > (order[prev] || 0)) {
+      try {
+        localStorage.setItem(meta.bestRankKey, rank);
+      } catch (e) {}
+      return true;
+    }
+    return false;
+  },
+
+  getBossRecord: function (bossId) {
+    if (!bossId) return { rank: '', bestTime: 0, clears: 0 };
+    try {
+      var raw = localStorage.getItem('arcade_iaijutsu_boss_rec_' + bossId);
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          return {
+            rank: parsed.rank || '',
+            bestTime: parseFloat(parsed.bestTime) || 0,
+            clears: parseInt(parsed.clears, 10) || 0
+          };
+        }
+      }
+    } catch (e) {}
+    return { rank: '', bestTime: 0, clears: 0 };
+  },
+
+  saveBossRecord: function (bossId, rank, clearTime) {
+    if (!bossId) return false;
+    var prev = this.getBossRecord(bossId);
+    var order = { S: 4, A: 3, B: 2, C: 1 };
+    var nextRank = ((order[rank] || 0) > (order[prev.rank] || 0)) ? rank : prev.rank;
+    var nextTime = (clearTime > 0 && (!prev.bestTime || clearTime < prev.bestTime)) ? Number(clearTime.toFixed(2)) : prev.bestTime;
+    var nextRec = {
+      rank: nextRank,
+      bestTime: nextTime,
+      clears: (prev.clears || 0) + 1
+    };
+    try {
+      localStorage.setItem('arcade_iaijutsu_boss_rec_' + bossId, JSON.stringify(nextRec));
+    } catch (e) {}
+    return (nextRank !== prev.rank) || (nextTime !== prev.bestTime);
+  },
+
+  // 皮肤/奥义解锁取各模式最高连斩，进度互通
   getUnlockScore: function () {
+    var endlessCombo = 0;
+    try {
+      endlessCombo = parseInt(localStorage.getItem('arcade_iaijutsu_chase_endless_combo'), 10) || 0;
+    } catch (e) {}
     return Math.max(
       this.getModeHighScore('classic'),
       this.getModeHighScore('ex'),
-      this.getModeHighScore('boss')
+      this.getModeHighScore('boss'),
+      this.getModeHighScore('chase_escape'),
+      endlessCombo
     );
   },
 
@@ -304,6 +464,7 @@ var MiniGames = {
     this.currentGame = null;
     this.lockedWeapon = null;
     this.finished = false;
+    if (window.Player) Player.speedMult = 1;
 
     if (window.SFX) {
       if (SFX.stopIaijutsuBgm) SFX.stopIaijutsuBgm();
@@ -315,31 +476,79 @@ var MiniGames = {
     if (window.IaijutsuUltimates && window.IaijutsuUltimates.cleanup) {
       window.IaijutsuUltimates.cleanup(this);
     }
-    // 还原全局实现，避免下一次启动仍指向异靶版
+    // 还原全局实现，避免下一次启动仍指向扩展版
     this._restoreModeImpl();
+    if (window.UI && UI.hideTutorialUi) UI.hideTutorialUi();
 
     if (window.UI && UI.onRunLeft) UI.onRunLeft();
   },
 
-  // 结算（3 次断连）
+  // 结算（3 次断连 / 宿敌结算 / 追逐结算）
   finishGame: function (result, msg) {
     if (this.finished) return;
     this.finished = true;
     this.finishT = 3.2;
     this.result = result;
+    if (window.Player) Player.speedMult = 1;
 
     var gameId = this.currentGame;
-    var finalVal = this.maxCombo;
-    var isNewHigh = this.saveHighScore(gameId, finalVal);
     var meta = this.getModeMeta();
+    var isChase = (this.modeId === 'chase_escape' || this.modeId === 'chase_endless');
+    var isBoss = (this.modeId === 'boss');
+    var data = this.iaijutsuData || {};
+    var distanceM = isChase ? Math.floor(data.distanceM || 0) : 0;
+    var clearTime = (this.modeId === 'chase_escape' && result === 'win') ? (data.clearTime || this.timer) : 0;
+    var bossClearTime = (isBoss && result === 'win') ? (data.bossClearTime || this.timer) : 0;
+    var bossRank = (isBoss && result === 'win') ? (data.bossRank || 'B') : '';
+    var bossHpPct = (isBoss && data.boss && data.boss.maxHp) ? Math.max(0, Math.ceil((data.boss.hp / data.boss.maxHp) * 100)) : 0;
 
-    var rewardMoney = Math.min(300, Math.max(20, Math.floor(finalVal * 2)));
-    var rewardShards = Math.min(25, Math.max(2, Math.floor(finalVal / 4)));
+    var finalVal = this.maxCombo;
+    var isNewHigh = false;
+    if (this.modeId === 'chase_endless') {
+      finalVal = distanceM;
+      isNewHigh = this.saveHighScore(gameId, distanceM);
+      // 同步记录无尽模式最高连斩供工坊皮肤解锁
+      try {
+        var prevEc = parseInt(localStorage.getItem('arcade_iaijutsu_chase_endless_combo'), 10) || 0;
+        if (this.maxCombo > prevEc) localStorage.setItem('arcade_iaijutsu_chase_endless_combo', String(this.maxCombo));
+      } catch (e) {}
+    } else if (this.modeId === 'chase_escape') {
+      var comboHigh = this.saveHighScore(gameId, this.maxCombo);
+      var timeHigh = (result === 'win') ? this.saveChaseEscapeBestTime(clearTime) : false;
+      isNewHigh = timeHigh || comboHigh;
+    } else if (isBoss) {
+      var bComboHigh = this.saveHighScore(gameId, this.maxCombo);
+      var bTimeHigh = (result === 'win') ? this.saveBossBestTime(bossClearTime) : false;
+      var bRankHigh = (result === 'win') ? this.saveBossBestRank(bossRank) : false;
+      var bIndHigh = (result === 'win' && data.boss && data.boss.id)
+        ? this.saveBossRecord(data.boss.id, bossRank, bossClearTime) : false;
+      isNewHigh = bTimeHigh || bRankHigh || bIndHigh || bComboHigh;
+    } else {
+      isNewHigh = this.saveHighScore(gameId, finalVal);
+    }
+
+    var rewardBase = isChase ? Math.max(this.maxCombo, Math.floor(distanceM / 25)) : finalVal;
+    var winBonusMoney = (result === 'win' && (isChase || isBoss)) ? 80 : 0;
+    var winBonusShards = (result === 'win' && (isChase || isBoss)) ? 6 : 0;
+    var rewardMoney = Math.min(300, Math.max(20, Math.floor(rewardBase * 2) + winBonusMoney));
+    var rewardShards = Math.min(25, Math.max(2, Math.floor(rewardBase / 4) + winBonusShards));
     Player.money += rewardMoney;
     Player.shards += rewardShards;
 
     this.lastSummary = {
-      maxCombo: finalVal,
+      maxCombo: this.maxCombo,
+      distanceM: distanceM,
+      targetDistanceM: data.targetDistanceM || 1500,
+      clearTime: clearTime,
+      chaseVariant: data.chaseVariant || null,
+      bossName: (isBoss && data.boss) ? data.boss.name : '',
+      bossId: (isBoss && data.boss) ? data.boss.id : '',
+      bossRank: bossRank,
+      bossClearTime: bossClearTime,
+      bossHpPct: bossHpPct,
+      hitsTaken: data.hitsTaken || 0,
+      parryCount: data.parryCount || 0,
+      execCount: data.execCount || 0,
       isNewHigh: isNewHigh,
       rewardMoney: rewardMoney,
       rewardShards: rewardShards,
@@ -351,7 +560,12 @@ var MiniGames = {
 
     var bannerText = (result === 'win' ? '🏆 ' : '🎯 ') + meta.name + ' · 结算完成！';
     if (isNewHigh) {
-      bannerText = '🌟 刷新历史纪录！' + finalVal + ' ' + meta.unit + '！' + bannerText;
+      var recStr = (this.modeId === 'chase_escape' && clearTime > 0)
+        ? (clearTime.toFixed(1) + 's')
+        : (isBoss && result === 'win' && bossClearTime > 0)
+          ? (bossRank + ' 级 · ' + bossClearTime.toFixed(1) + 's')
+          : (finalVal + ' ' + meta.unit);
+      bannerText = '🌟 刷新历史纪录！' + recStr + '！' + bannerText;
       SFX.play('victory');
     } else {
       SFX.play(result === 'win' ? 'victory' : 'portal');
@@ -398,7 +612,10 @@ var MiniGames = {
     var isSettingsOpen = window.UI && UI.isSettingsOpen && UI.isSettingsOpen();
 
     if (isIaiHubOpen || isSettingsOpen) {
-      if (this.room) {
+      if (window.IaijutsuMode && IaijutsuMode.getCamera) {
+        var pauseCam = IaijutsuMode.getCamera(this);
+        if (pauseCam) { Main.camX = pauseCam.x; Main.camY = pauseCam.y; }
+      } else if (this.room) {
         Main.camX = this.room.worldX;
         Main.camY = this.room.worldY;
       }
@@ -419,7 +636,10 @@ var MiniGames = {
       return;
     }
 
-    if (this.room) {
+    if (window.IaijutsuMode && IaijutsuMode.getCamera) {
+      var preCam = IaijutsuMode.getCamera(this);
+      if (preCam) { Main.camX = preCam.x; Main.camY = preCam.y; }
+    } else if (this.room) {
       Main.camX = this.room.worldX;
       Main.camY = this.room.worldY;
     }
@@ -447,6 +667,12 @@ var MiniGames = {
 
     Player.update(dt, this.room.colliders, mouseWorld);
     this._updateIaijutsu(dt, mouseWorld, input);
+
+    // 帧末再次同步自定义相机，避免渲染出现 1 帧相机滞后
+    if (window.IaijutsuMode && IaijutsuMode.getCamera) {
+      var postCam = IaijutsuMode.getCamera(this);
+      if (postCam) { Main.camX = postCam.x; Main.camY = postCam.y; }
+    }
 
     // 粒子与浮动文字
     for (var pIdx = this.particles.length - 1; pIdx >= 0; pIdx--) {
@@ -479,28 +705,30 @@ var MiniGames = {
     var rx = room.worldX, ry = room.worldY;
     var rw = room.w, rh = room.h;
 
-    // 1. 赛博街机场地背景
+    // 1. 赛博街机场地背景（自定义长廊模式由自身绘制视差背景，避免在 40000px 上逐格画网格）
     ctx.save();
-    var bgGrad = ctx.createRadialGradient(rx + rw / 2, ry + rh / 2, 50, rx + rw / 2, ry + rh / 2, rw * 0.7);
-    bgGrad.addColorStop(0, '#0f172a');
-    bgGrad.addColorStop(1, '#020617');
-    ctx.fillStyle = bgGrad;
-    ctx.fillRect(rx, ry, rw, rh);
+    if (!(window.IaijutsuMode && IaijutsuMode.getCamera)) {
+      var bgGrad = ctx.createRadialGradient(rx + rw / 2, ry + rh / 2, 50, rx + rw / 2, ry + rh / 2, rw * 0.7);
+      bgGrad.addColorStop(0, '#0f172a');
+      bgGrad.addColorStop(1, '#020617');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(rx, ry, rw, rh);
 
-    var gridPulse = 0.08 + 0.02 * Math.sin((this.timer || 0) * 1.8);
-    ctx.strokeStyle = 'rgba(56, 189, 248, ' + gridPulse.toFixed(3) + ')';
-    ctx.lineWidth = 1;
-    for (var gx = rx; gx < rx + rw; gx += 40) {
-      ctx.beginPath(); ctx.moveTo(gx, ry); ctx.lineTo(gx, ry + rh); ctx.stroke();
-    }
-    for (var gy = ry; gy < ry + rh; gy += 40) {
-      ctx.beginPath(); ctx.moveTo(rx, gy); ctx.lineTo(rx + rw, gy); ctx.stroke();
-    }
+      var gridPulse = 0.08 + 0.02 * Math.sin((this.timer || 0) * 1.8);
+      ctx.strokeStyle = 'rgba(56, 189, 248, ' + gridPulse.toFixed(3) + ')';
+      ctx.lineWidth = 1;
+      for (var gx = rx; gx < rx + rw; gx += 40) {
+        ctx.beginPath(); ctx.moveTo(gx, ry); ctx.lineTo(gx, ry + rh); ctx.stroke();
+      }
+      for (var gy = ry; gy < ry + rh; gy += 40) {
+        ctx.beginPath(); ctx.moveTo(rx, gy); ctx.lineTo(rx + rw, gy); ctx.stroke();
+      }
 
-    var borderAlpha = 0.45 + 0.15 * Math.sin((this.timer || 0) * 2.5);
-    ctx.strokeStyle = 'rgba(56, 189, 248, ' + borderAlpha.toFixed(3) + ')';
-    ctx.lineWidth = 4;
-    ctx.strokeRect(rx + 8, ry + 8, rw - 16, rh - 16);
+      var borderAlpha = 0.45 + 0.15 * Math.sin((this.timer || 0) * 2.5);
+      ctx.strokeStyle = 'rgba(56, 189, 248, ' + borderAlpha.toFixed(3) + ')';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(rx + 8, ry + 8, rw - 16, rh - 16);
+    }
 
     // 2. 居合斩场景（道场背景 / 领域 / 靶位）
     if (window.IaijutsuMode) {
@@ -728,6 +956,10 @@ var MiniGames = {
 
   // ========================== 仪表盘 HUD ==========================
   _renderHud: function (ctx) {
+    if (window.IaijutsuMode && IaijutsuMode.renderCustomHud) {
+      IaijutsuMode.renderCustomHud(ctx, this);
+      return;
+    }
     var room = this.room;
     var rx = room.worldX, ry = room.worldY;
     var meta = this.getModeMeta();
@@ -775,14 +1007,14 @@ var MiniGames = {
 
     statText = '连斩: ' + this.combo + tierTag + ' (最高 ' + this.maxCombo + ') | ' + stateDesc;
 
-    // 宿敌战：顶部一行本来就挤，去掉段位标签与无我提示，只留连斩/命数
+    // 宿敌战：显示对决核心数据（连斩 / 见切 / 命数 / 用时）
     if (this.modeId === 'boss') {
-      statText = '连斩: ' + this.combo + ' (最高 ' + this.maxCombo + ') | ' + heartStr +
-        ' 断连 ' + Math.max(0, 3 - curL) + '/3';
+      var pCnt = (this.iaijutsuData && this.iaijutsuData.parryCount) || 0;
+      statText = '连斩: ' + this.combo + ' | ✦ 见切: ' + pCnt + ' | ' + heartStr + ' | ⏱ ' + (this.timer || 0).toFixed(1) + 's';
     }
 
     ctx.fillStyle = (this.iaijutsuData && (this.iaijutsuData.ultimateTimer > 0 || this.iaijutsuData.frenzyTimer > 0)) ? '#fde047' : '#38bdf8';
-    ctx.fillText(statText, rx + 280, ry + 29);
+    ctx.fillText(statText, rx + 260, ry + 29);
 
     // HUD 顶部居右显示【无CD无我: ON / OFF (按T或点击切换)】测试按钮
     // 宿敌战封印无我，这个按钮只会误导，直接不画
@@ -811,7 +1043,14 @@ var MiniGames = {
     // 历史最高分与退出提示
     ctx.textAlign = 'right';
     ctx.fillStyle = '#ffd66b';
-    ctx.fillText('🏆 历史纪录: ' + high + ' ' + (meta.unit || '') + ' (Esc 退出)', rx + CFG.W - 36, ry + 29);
+    if (this.modeId === 'boss') {
+      var bBestRank = this.getBossBestRank();
+      var bBestTime = this.getBossBestTime();
+      var bossRecTxt = bBestTime > 0 ? ('🏆 最佳: ' + (bBestRank || 'B') + ' · ' + bBestTime.toFixed(1) + 's') : '🏆 尚未斩敌';
+      ctx.fillText(bossRecTxt + ' (Esc 退出)', rx + CFG.W - 36, ry + 29);
+    } else {
+      ctx.fillText('🏆 历史纪录: ' + high + ' ' + (meta.unit || '') + ' (Esc 退出)', rx + CFG.W - 36, ry + 29);
+    }
 
     if (this.iaijutsuData) {
       var dData = this.iaijutsuData;

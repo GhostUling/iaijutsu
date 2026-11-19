@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>居合斩 · 无限连闪</title>
-<link rel="stylesheet" href="css/style.css?v=5">
+<link rel="stylesheet" href="css/style.css?v=10">
 </head>
 <body>
   <div id="stage">
@@ -37,15 +37,16 @@
             <div class="title-stat-label">🏆 最高纪录</div>
             <div class="title-record"><span class="mode-tag">原版</span><b id="title-high">0</b><span class="title-record-unit">连斩</span></div>
             <div class="title-record"><span class="mode-tag mode-tag-ex">异靶</span><b id="title-high-ex">0</b><span class="title-record-unit">连斩</span></div>
-            <div class="title-record"><span class="mode-tag mode-tag-boss">宿敌</span><b id="title-high-boss">0</b><span class="title-record-unit">连斩</span></div>
+            <div class="title-record"><span class="mode-tag mode-tag-boss">宿敌</span><span class="title-chase-rec"><b id="title-high-boss">--</b><span class="title-record-unit" id="title-boss-unit"></span></span></div>
+            <div class="title-record title-record-chase"><span class="mode-tag mode-tag-chase">追逐</span><span class="title-chase-rec"><b id="title-high-chase-endless">0</b><span class="title-record-unit">m</span> <span class="title-rec-sep">·</span> 逃脱 <b id="title-best-chase-time">--</b></span></div>
           </div>
           <div class="title-stat">
             <div class="title-stat-label">🎮 操作</div>
             <div class="title-controls">
               <span><b>左键</b> 朝光标突进出刀</span>
-              <span><b>右键</b> 原地挥砍</span>
-              <span><b>空格</b> 无我大招</span>
-              <span><b>B</b> 皮肤工坊</span>
+              <span><b>右键</b> 原地挥砍（可救场刷新）</span>
+              <span><b>空格</b> 无我 / 心眼 / 瞬步脱身</span>
+              <span><b>WASD</b> 走位 · <b>B</b> 皮肤工坊</span>
             </div>
           </div>
         </div>
@@ -53,15 +54,56 @@
         <div class="title-actions">
           <button type="button" id="title-start-btn" class="btn-primary">⚔️ 原版 <small>经典三靶</small></button>
           <button type="button" id="title-start-ex-btn" class="btn-ex">🧪 异靶 <small>四新靶</small></button>
-          <button type="button" id="title-start-boss-btn" class="btn-boss">👹 宿敌 <small>BOSS</small></button>
+          <button type="button" id="title-start-boss-btn" class="btn-boss">👹 宿敌 <small>选敌对决</small></button>
+          <button type="button" id="title-start-chase-btn" class="btn-chase">🏃 追逐 <small id="title-chase-sub">1500m 逃脱</small></button>
         </div>
 
-        <!-- 工具按钮：放到卡片右上角，让三个模式按钮能排成一行 -->
+        <!-- 追逐目标分段条（宿敌拥有独立选敌页） -->
+        <div class="mode-options-row">
+          <div class="chase-variant-bar" role="group" aria-label="追逐模式目标">
+            <span class="chase-variant-label">鬼影追猎目标</span>
+            <div class="chase-variant-seg">
+              <button type="button" id="chase-var-escape" class="chase-seg-btn active" data-variant="chase_escape">终点逃脱 · 1500m</button>
+              <button type="button" id="chase-var-endless" class="chase-seg-btn" data-variant="chase_endless">无尽逃亡 · 冲榜</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 工具按钮：放到卡片右上角，让四个模式按钮排成一行 -->
         <div class="title-tools">
           <button type="button" id="title-hub-btn" class="btn-ghost">🏮 工坊</button>
           <button type="button" id="title-mute-btn" class="btn-ghost">🔊 声音 M</button>
         </div>
-        <div class="title-foot">原版：三种靶 · 熟悉的手感　|　异靶：💣 勿斩 · 🗿 两刀 · 🪞 分裂 · 🔗 连锁　|　宿敌：读招 → 躲开 → 砍弱点</div>
+        <div class="title-foot">宿敌对决：三位高难宿敌 · ✦ 金光空格见切 · 危字必闪 · 满架势处决　|　鬼影追猎：三阶七招 · 切靶刷CD</div>
+      </div>
+    </div>
+
+    <!-- 宿敌选敌页（独立选 Boss 界面） -->
+    <div id="boss-select-screen" class="overlay hidden">
+      <div class="boss-select-wrap">
+        <div class="boss-select-header">
+          <div>
+            <div class="boss-select-kicker">⚔️ IAIJUTSU · 宿敌名录</div>
+            <h2 class="boss-select-title">择敌出鞘 · 宿敌对决</h2>
+          </div>
+          <div class="boss-header-actions">
+            <button type="button" id="boss-select-tutorial-btn" class="btn-tutorial">📖 新手教程 <small id="boss-tut-state">5 课包会</small></button>
+            <button type="button" id="boss-select-close" class="btn-ghost boss-close-btn">↩ 返回主菜单</button>
+          </div>
+        </div>
+        <div class="boss-select-rules">
+          <span><b class="rule-gold">✦ 金光闪现</b> 按<b>空格</b>心眼见切弹反</span>
+          <span><b class="rule-red">危 字杀招</b> 不可弹反，务必突进闪避</span>
+          <span><b class="rule-warn">⛔ 蓄力霸体</b> 硬撞会被震刀弹开</span>
+          <span><b class="rule-gold">⚡ 满架势</b> 破防后一刀高伤处决</span>
+        </div>
+
+        <div id="boss-select-grid" class="boss-select-grid"></div>
+
+        <div class="boss-select-footer">
+          <button type="button" id="boss-select-random-btn" class="btn-secondary">🎲 随机宿敌</button>
+          <button type="button" id="boss-select-fight-btn" class="btn-boss boss-launch-btn">⚔️ 拔刀迎战 · 无明 <small>空格</small></button>
+        </div>
       </div>
     </div>
 
@@ -74,16 +116,60 @@
         <div id="result-msg" class="result-msg">⚔️ 居合断连 3 次，特训结束！</div>
 
         <div class="result-combo-box">
-          <div class="result-combo-label">本局最高连斩</div>
-          <div class="result-combo"><b id="result-combo">0</b><span>连</span></div>
+          <div class="result-combo-label" id="result-combo-label">本局最高连斩</div>
+          <div class="result-combo"><b id="result-combo">0</b><span id="result-combo-unit">连</span></div>
         </div>
 
         <div class="result-line"><span id="result-record">历史最高：0</span></div>
         <div class="result-line result-reward" id="result-reward">💰 +0   🔷 +0</div>
 
         <div class="result-actions">
+          <button type="button" id="result-boss-tutorial-btn" class="btn-tutorial hidden">📖 新手教程</button>
+          <button type="button" id="result-switch-boss-btn" class="btn-boss hidden">👹 更换宿敌</button>
+          <button type="button" id="result-continue-endless-btn" class="btn-chase hidden">♾️ 继续无尽逃亡</button>
           <button type="button" id="result-retry-btn" class="btn-primary">⚔️ 再来一局 <small>空格</small></button>
           <button type="button" id="result-back-btn" class="btn-secondary">↩ 主菜单</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 宿敌战 · 交互式新手教程 HUD（不遮挡中央战斗视野） -->
+    <div id="boss-tutorial-hud" class="boss-tut-hud hidden" aria-live="polite">
+      <div class="boss-tut-top-actions">
+        <button type="button" id="tut-skip-btn" class="boss-tut-btn">跳过本课 ⏭</button>
+        <button type="button" id="tut-exit-btn" class="boss-tut-btn boss-tut-btn-exit">退出教程 ✕</button>
+      </div>
+      <div class="boss-tut-card">
+        <div class="boss-tut-meta">
+          <span class="boss-tut-step" id="tut-step-label">第 1 / 5 课</span>
+          <span class="boss-tut-sep">·</span>
+          <span class="boss-tut-title" id="tut-title">破绽弱点 · 两刀原则</span>
+          <span class="boss-tut-key" id="tut-key-hint">鼠标左键 突进出刀</span>
+          <span class="boss-tut-progress" id="tut-progress">0 / 2</span>
+        </div>
+        <div class="boss-tut-bars" id="tut-bars"></div>
+        <div class="boss-tut-desc" id="tut-desc"></div>
+        <div class="boss-tut-tip" id="tut-tip"></div>
+      </div>
+    </div>
+
+    <!-- 宿敌新手教程毕业弹窗 -->
+    <div id="boss-tutorial-done" class="overlay hidden">
+      <div class="tut-done-wrap">
+        <div class="tut-done-icon">🎓</div>
+        <h2 class="tut-done-title">宿敌心法已成 · 特训毕业！</h2>
+        <p class="tut-done-sub">你已经亲手练会了宿敌对决的全部 5 项核心机制，现在去拿下首胜吧：</p>
+        <div class="tut-done-recap">
+          <div><b>1. 破绽输出</b>：瞄准金色弱点左键突进，砍满 2 刀就收手</div>
+          <div><b>2. 危字必闪</b>：看到红【危】字不可弹反，第一时间闪出红区</div>
+          <div><b>3. 心眼见切</b>：可弹反招式爆出 ✦ 金光时按【空格】完美弹反</div>
+          <div><b>4. 切碎弹幕</b>：飞刃可左键穿透或右键挥砍切碎</div>
+          <div><b>5. 居合处决</b>：打满金色架势条后，左键穿透发动高伤处决</div>
+        </div>
+        <div class="tut-done-actions">
+          <button type="button" id="tut-done-fight-btn" class="btn-boss">⚔️ 实战挑战 · 无明 <small>推荐首战</small></button>
+          <button type="button" id="tut-done-select-btn" class="btn-primary">👹 返回宿敌名录</button>
+          <button type="button" id="tut-done-replay-btn" class="btn-secondary">🔁 再练一遍</button>
         </div>
       </div>
     </div>
@@ -152,7 +238,7 @@
     </div>
   </div>
 
-  <script src="js/load_order.js?v=5"></script>
+  <script src="js/load_order.js?v=10"></script>
   <script>
     (function () {
       var list = window.GAME_LOAD_ORDER || [];
@@ -162,15 +248,26 @@
     })();
   </script>
   <script>
-    // 标题 / 结算页的键盘操作：空格开局、Esc 返回
+    // 标题 / 选敌 / 结算 / 教程毕业页的键盘操作：空格开局、Esc 返回
     window.addEventListener('keydown', function (e) {
-      if (e.code === 'Space') {
+      var tutDone = document.getElementById('boss-tutorial-done');
+      var tutDoneOpen = tutDone && !tutDone.classList.contains('hidden');
+      if (tutDoneOpen) {
+        if (e.code === 'Escape') { UI.exitBossTutorialToSelect(); return; }
+        if (e.code === 'Enter') { e.preventDefault(); UI.startBossAfterTutorial(); return; }
+        return;
+      }
+      var bossSel = document.getElementById('boss-select-screen');
+      var bossOpen = bossSel && !bossSel.classList.contains('hidden');
+      if (e.code === 'Space' || e.code === 'Enter') {
+        if (bossOpen) { e.preventDefault(); UI.startSelectedBoss(); return; }
         var title = document.getElementById('title-screen');
         var result = document.getElementById('result-screen');
-        if (title && !title.classList.contains('hidden')) { e.preventDefault(); UI.beginRun(); return; }
-        if (result && !result.classList.contains('hidden')) { e.preventDefault(); UI.beginRun(); return; }
+        if (e.code === 'Space' && title && !title.classList.contains('hidden')) { e.preventDefault(); UI.beginRun(); return; }
+        if (e.code === 'Space' && result && !result.classList.contains('hidden')) { e.preventDefault(); UI.beginRun(); return; }
       }
       if (e.code === 'Escape') {
+        if (bossOpen) { UI.showTitle(); return; }
         var r = document.getElementById('result-screen');
         if (r && !r.classList.contains('hidden')) { UI.showTitle(); }
       }

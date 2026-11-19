@@ -3,10 +3,14 @@ var UI = {
   canvas: null,
   waveBanner: null,
   titlePanel: null,
+  bossSelectPanel: null,
+  bossSelectGrid: null,
   endPanel: null,
   iaiHubPanel: null,
   iaiActiveTab: 'slash',
   lastModeId: 'classic',
+  bossPickId: 'mumyo',
+  chaseVariantId: 'chase_escape',
   _bannerTimer: null,
   _muted: false,
 
@@ -15,6 +19,8 @@ var UI = {
     this.canvas = canvas;
     this.waveBanner = document.getElementById('wave-banner');
     this.titlePanel = document.getElementById('title-screen');
+    this.bossSelectPanel = document.getElementById('boss-select-screen');
+    this.bossSelectGrid = document.getElementById('boss-select-grid');
     this.endPanel = document.getElementById('result-screen');
 
     // ---- 居合大殿 ----
@@ -66,7 +72,68 @@ var UI = {
     var startExBtn = document.getElementById('title-start-ex-btn');
     if (startExBtn) startExBtn.addEventListener('click', function () { UI.beginRun('ex'); });
     var startBossBtn = document.getElementById('title-start-boss-btn');
-    if (startBossBtn) startBossBtn.addEventListener('click', function () { UI.beginRun('boss'); });
+    if (startBossBtn) startBossBtn.addEventListener('click', function () {
+      UI.showBossSelect();
+    });
+    var startChaseBtn = document.getElementById('title-start-chase-btn');
+    if (startChaseBtn) startChaseBtn.addEventListener('click', function () { UI.beginRun(UI.chaseVariantId || 'chase_escape'); });
+
+    // ---- 宿敌选敌页按钮 ----
+    var bossCloseBtn = document.getElementById('boss-select-close');
+    if (bossCloseBtn) bossCloseBtn.addEventListener('click', function () { UI.showTitle(); });
+    var bossTutBtn = document.getElementById('boss-select-tutorial-btn');
+    if (bossTutBtn) bossTutBtn.addEventListener('click', function () { UI.startBossTutorial(); });
+    var bossRandBtn = document.getElementById('boss-select-random-btn');
+    if (bossRandBtn) bossRandBtn.addEventListener('click', function () {
+      UI.bossPickId = 'random';
+      if (window.MiniGames) MiniGames.selectedBossId = 'random';
+      UI.beginRun('boss');
+    });
+    var bossFightBtn = document.getElementById('boss-select-fight-btn');
+    if (bossFightBtn) bossFightBtn.addEventListener('click', function () { UI.startSelectedBoss(); });
+
+    // ---- 宿敌教程 HUD & 毕业弹窗按钮 ----
+    var stopCanvasFire = function (e) { e.stopPropagation(); };
+    var tutSkipBtn = document.getElementById('tut-skip-btn');
+    if (tutSkipBtn) {
+      tutSkipBtn.addEventListener('mousedown', stopCanvasFire);
+      tutSkipBtn.addEventListener('pointerdown', stopCanvasFire);
+      tutSkipBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (window.IaijutsuModeBossTutorial && window.MiniGames) {
+          IaijutsuModeBossTutorial.skipCurrentLesson(MiniGames);
+        }
+      });
+    }
+    var tutExitBtn = document.getElementById('tut-exit-btn');
+    if (tutExitBtn) {
+      tutExitBtn.addEventListener('mousedown', stopCanvasFire);
+      tutExitBtn.addEventListener('pointerdown', stopCanvasFire);
+      tutExitBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        UI.exitBossTutorialToSelect();
+      });
+    }
+    var tutDoneFight = document.getElementById('tut-done-fight-btn');
+    if (tutDoneFight) tutDoneFight.addEventListener('click', function () { UI.startBossAfterTutorial(); });
+    var tutDoneSel = document.getElementById('tut-done-select-btn');
+    if (tutDoneSel) tutDoneSel.addEventListener('click', function () { UI.exitBossTutorialToSelect(); });
+    var tutDoneReplay = document.getElementById('tut-done-replay-btn');
+    if (tutDoneReplay) tutDoneReplay.addEventListener('click', function () { UI.startBossTutorial(); });
+
+    var chaseEscBtn = document.getElementById('chase-var-escape');
+    var chaseEndBtn = document.getElementById('chase-var-endless');
+    var setChaseVar = function (vid) {
+      UI.chaseVariantId = (vid === 'chase_endless') ? 'chase_endless' : 'chase_escape';
+      if (chaseEscBtn) chaseEscBtn.classList.toggle('active', UI.chaseVariantId === 'chase_escape');
+      if (chaseEndBtn) chaseEndBtn.classList.toggle('active', UI.chaseVariantId === 'chase_endless');
+      var sub = document.getElementById('title-chase-sub');
+      if (sub) sub.textContent = UI.chaseVariantId === 'chase_endless' ? '无尽逃亡' : '1500m 逃脱';
+      if (window.SFX && SFX.play) SFX.play('click');
+    };
+    if (chaseEscBtn) chaseEscBtn.addEventListener('click', function () { setChaseVar('chase_escape'); });
+    if (chaseEndBtn) chaseEndBtn.addEventListener('click', function () { setChaseVar('chase_endless'); });
+
     var hubBtn = document.getElementById('title-hub-btn');
     if (hubBtn) hubBtn.addEventListener('click', function () { UI.showIaijutsuHub(); });
     var muteBtn = document.getElementById('title-mute-btn');
@@ -77,6 +144,12 @@ var UI = {
     // 任何一次真实点击/按键都尝试解锁音频（自动播放策略：上下文要在手势里创建/恢复）
     this.initAudioUnlock();
 
+    var resBossTutBtn = document.getElementById('result-boss-tutorial-btn');
+    if (resBossTutBtn) resBossTutBtn.addEventListener('click', function () { UI.startBossTutorial(); });
+    var switchBossBtn = document.getElementById('result-switch-boss-btn');
+    if (switchBossBtn) switchBossBtn.addEventListener('click', function () { UI.showBossSelect(); });
+    var contEndlessBtn = document.getElementById('result-continue-endless-btn');
+    if (contEndlessBtn) contEndlessBtn.addEventListener('click', function () { UI.beginRun('chase_endless'); });
     var retryBtn = document.getElementById('result-retry-btn');
     if (retryBtn) retryBtn.addEventListener('click', function () { UI.beginRun(UI.lastModeId); });
     var backBtn = document.getElementById('result-back-btn');
@@ -111,7 +184,9 @@ var UI = {
       SFX.resume();
     }
     this.hideTitle();
+    this.hideBossSelect();
     this.hideResult();
+    this.hideTutorialUi();
     // 清掉点击/空格残留，避免"一开局就自动出刀"
     Input.leftPressed = false;
     Input.rightPressed = false;
@@ -137,6 +212,226 @@ var UI = {
     }, 150);
   },
 
+  startSelectedBoss: function (bossId) {
+    var pick = bossId || this.bossPickId || 'mumyo';
+    this.bossPickId = pick;
+    if (window.MiniGames) MiniGames.selectedBossId = pick;
+    this.beginRun('boss');
+  },
+
+  startBossTutorial: function () {
+    if (window.MiniGames && MiniGames.active) {
+      MiniGames.active = false;
+      if (MiniGames._restoreModeImpl) MiniGames._restoreModeImpl();
+    }
+    this.hideTutorialUi();
+    this.beginRun('boss_tutorial');
+  },
+
+  exitBossTutorialToSelect: function () {
+    this.hideTutorialUi();
+    if (window.MiniGames && MiniGames.active) {
+      MiniGames.lastSummary = null;
+      MiniGames.leave();
+    }
+    this.showBossSelect();
+  },
+
+  startBossAfterTutorial: function () {
+    this.hideTutorialUi();
+    if (window.MiniGames && MiniGames.active) {
+      MiniGames.active = false;
+      if (MiniGames._restoreModeImpl) MiniGames._restoreModeImpl();
+    }
+    this.startSelectedBoss('mumyo');
+  },
+
+  hideTutorialUi: function () {
+    var hud = document.getElementById('boss-tutorial-hud');
+    if (hud) hud.classList.add('hidden');
+    var done = document.getElementById('boss-tutorial-done');
+    if (done) done.classList.add('hidden');
+  },
+
+  updateTutorialHud: function (st) {
+    var hud = document.getElementById('boss-tutorial-hud');
+    if (!hud) return;
+    if (!st || !st.visible) {
+      hud.classList.add('hidden');
+      return;
+    }
+    hud.classList.remove('hidden');
+    var stepEl = document.getElementById('tut-step-label');
+    if (stepEl) stepEl.textContent = '第 ' + st.num + ' / ' + st.total + ' 课';
+    var titleEl = document.getElementById('tut-title');
+    if (titleEl) titleEl.textContent = st.title || '';
+    var keyEl = document.getElementById('tut-key-hint');
+    if (keyEl) keyEl.textContent = st.keyHint || '';
+    var progEl = document.getElementById('tut-progress');
+    if (progEl) {
+      progEl.textContent = st.goalLabel + ' ' + st.progress + ' / ' + st.target;
+      progEl.classList.toggle('done', st.progress >= st.target);
+    }
+    var descEl = document.getElementById('tut-desc');
+    if (descEl) descEl.textContent = st.desc || '';
+    var tipEl = document.getElementById('tut-tip');
+    if (tipEl) {
+      tipEl.textContent = st.tip || '';
+      tipEl.className = 'boss-tut-tip tip-' + (st.tipKind || 'info');
+    }
+    var barsEl = document.getElementById('tut-bars');
+    if (barsEl) {
+      var html = '';
+      for (var i = 0; i < st.total; i++) {
+        var cls = i < st.step ? 'done' : (i === st.step ? (st.progress >= st.target ? 'done' : 'active') : '');
+        html += '<span class="boss-tut-bar ' + cls + '"></span>';
+      }
+      barsEl.innerHTML = html;
+    }
+  },
+
+  showTutorialComplete: function () {
+    var hud = document.getElementById('boss-tutorial-hud');
+    if (hud) hud.classList.add('hidden');
+    if (window.IaijutsuMode && IaijutsuMode.restoreDefaultCursor) {
+      IaijutsuMode.restoreDefaultCursor();
+    }
+    var done = document.getElementById('boss-tutorial-done');
+    if (done) done.classList.remove('hidden');
+  },
+
+  _bossPortraitSvg: function (bossId) {
+    if (bossId === 'mumyo') {
+      return '<svg viewBox="0 0 64 64" width="46" height="46" aria-hidden="true">' +
+        '<path d="M12 34 L32 10 L52 34 Q32 40 12 34 Z" fill="#1e1b4b" stroke="#818cf8" stroke-width="2.2"/>' +
+        '<path d="M18 36 L14 56 L50 56 L46 36 Z" fill="#0f172a" stroke="#f43f5e" stroke-width="2"/>' +
+        '<path d="M21 30 L28 33 L23 34 Z M43 30 L36 33 L41 34 Z" fill="#fb7185"/>' +
+        '<line x1="8" y1="50" x2="56" y2="26" stroke="#fde047" stroke-width="2.4" stroke-linecap="round"/>' +
+      '</svg>';
+    }
+    if (bossId === 'akaoni') {
+      return '<svg viewBox="0 0 64 64" width="46" height="46" aria-hidden="true">' +
+        '<path d="M20 22 Q10 10 18 6 Q20 15 26 20 Z" fill="#fde047"/>' +
+        '<path d="M44 22 Q54 10 46 6 Q44 15 38 20 Z" fill="#fde047"/>' +
+        '<circle cx="32" cy="27" r="12" fill="#292524" stroke="#fb923c" stroke-width="2.2"/>' +
+        '<path d="M12 38 L52 38 L46 56 L18 56 Z" fill="#1c1917" stroke="#ef4444" stroke-width="2.2"/>' +
+        '<rect x="24" y="25" width="5" height="3.2" fill="#fde047"/>' +
+        '<rect x="35" y="25" width="5" height="3.2" fill="#fde047"/>' +
+        '<line x1="16" y1="52" x2="54" y2="18" stroke="#f97316" stroke-width="4" stroke-linecap="round"/>' +
+      '</svg>';
+    }
+    return '<svg viewBox="0 0 64 64" width="46" height="46" aria-hidden="true">' +
+      '<path d="M16 14 A22 22 0 1 1 16 50" fill="none" stroke="#7dd3fc" stroke-width="2.6"/>' +
+      '<path d="M22 28 L18 10 L29 21 L35 21 L46 10 L42 28 L32 39 Z" fill="#f8fafc" stroke="#c084fc" stroke-width="2"/>' +
+      '<rect x="24" y="25" width="5" height="2.6" fill="#0284c7"/>' +
+      '<rect x="35" y="25" width="5" height="2.6" fill="#0284c7"/>' +
+      '<path d="M10 22 L13 38 L10 52 L7 38 Z M54 22 L57 38 L54 52 L51 38 Z" fill="#e0f2fe" stroke="#38bdf8" stroke-width="1.3"/>' +
+    '</svg>';
+  },
+
+  showBossSelect: function () {
+    Game.state = 'MENU';
+    this.hideTitle();
+    this.hideResult();
+    this.hideIaijutsuHub();
+    this.hideTutorialUi();
+    if (!this.bossPickId || this.bossPickId === 'random') this.bossPickId = 'mumyo';
+    this.renderBossSelect();
+    var tutState = document.getElementById('boss-tut-state');
+    if (tutState) {
+      var done = window.IaijutsuModeBossTutorial && IaijutsuModeBossTutorial.isCompleted && IaijutsuModeBossTutorial.isCompleted();
+      tutState.textContent = done ? '已通关 · 重温' : '推荐先练';
+    }
+    if (this.bossSelectPanel) this.bossSelectPanel.classList.remove('hidden');
+    if (window.SFX && SFX.play) SFX.play('click');
+  },
+
+  hideBossSelect: function () {
+    if (this.bossSelectPanel) this.bossSelectPanel.classList.add('hidden');
+  },
+
+  renderBossSelect: function () {
+    if (!this.bossSelectGrid) this.bossSelectGrid = document.getElementById('boss-select-grid');
+    if (!this.bossSelectGrid || !window.IaijutsuBoss) return;
+    var list = window.IaijutsuBoss.BOSS_LIST || [];
+    var curPick = this.bossPickId || (list[0] && list[0].id) || 'mumyo';
+    this.bossSelectGrid.innerHTML = '';
+
+    var self = this;
+    var pickedDef = list[0];
+    for (var i = 0; i < list.length; i++) {
+      (function (b) {
+        var isSel = (b.id === curPick);
+        if (isSel) pickedDef = b;
+        var rec = (window.MiniGames && MiniGames.getBossRecord) ? MiniGames.getBossRecord(b.id) : { rank: '', bestTime: 0, clears: 0 };
+        var stars = '★'.repeat(b.difficulty || 3) + '☆'.repeat(Math.max(0, 5 - (b.difficulty || 3)));
+
+        var card = document.createElement('div');
+        card.className = 'boss-card' + (isSel ? ' selected' : '');
+        card.style.setProperty('--boss-main', b.colors.main);
+        card.style.setProperty('--boss-sub', b.colors.sub);
+        card.style.setProperty('--boss-glow', b.colors.glow);
+
+        var movesHtml = '';
+        var mCards = b.moveCards || [];
+        for (var m = 0; m < mCards.length; m++) {
+          var mc = mCards[m];
+          movesHtml += '<div class="boss-move-item" title="' + mc.desc + '">' +
+            '<span class="boss-move-name">' + mc.name + '</span>' +
+            '<span class="boss-move-tag ' + mc.tagType + '">' + mc.tag + '</span>' +
+          '</div>';
+        }
+
+        var recHtml = rec.bestTime > 0
+          ? ('<span>🏆 最佳 <b>' + (rec.rank || 'B') + '</b> · ' + rec.bestTime.toFixed(1) + 's</span><span>已斩 ' + rec.clears + ' 次</span>')
+          : ('<span>尚未讨伐</span><span>' + (b.diffLabel || '宿敌') + '</span>');
+
+        card.innerHTML =
+          '<div class="boss-card-top">' +
+            '<div class="boss-portrait">' + self._bossPortraitSvg(b.id) + '</div>' +
+            '<div class="boss-card-head">' +
+              '<div class="boss-card-badge-row">' +
+                '<span class="boss-badge">' + b.badge + '</span>' +
+                '<span class="boss-stars">' + stars + '</span>' +
+              '</div>' +
+              '<div class="boss-card-name">' + b.name + '</div>' +
+              '<div class="boss-card-quote">「' + b.title + '」</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="boss-card-stats">' +
+            '<div class="boss-stat-chip">血量 <b>' + b.hp + '</b></div>' +
+            '<div class="boss-stat-chip">架势 <b>' + b.posture + '</b></div>' +
+          '</div>' +
+          '<div class="boss-card-desc">' + b.desc + '</div>' +
+          '<div class="boss-moves-list">' + movesHtml + '</div>' +
+          '<div class="boss-card-rec">' + recHtml + '</div>' +
+          '<button type="button" class="boss-card-go">⚔️ 拔刀讨伐 · ' + b.shortName + '</button>';
+
+        card.addEventListener('click', function () {
+          self.bossPickId = b.id;
+          if (window.SFX && SFX.play) SFX.play('click');
+          self.renderBossSelect();
+        });
+        card.addEventListener('dblclick', function () {
+          self.startSelectedBoss(b.id);
+        });
+        var goBtn = card.querySelector('.boss-card-go');
+        if (goBtn) {
+          goBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            self.startSelectedBoss(b.id);
+          });
+        }
+        self.bossSelectGrid.appendChild(card);
+      })(list[i]);
+    }
+
+    var fightBtn = document.getElementById('boss-select-fight-btn');
+    if (fightBtn && pickedDef) {
+      fightBtn.innerHTML = '⚔️ 拔刀迎战 · ' + pickedDef.shortName + ' <small>空格</small>';
+    }
+  },
+
   onRunLeft: function () {
     if (MiniGames.lastSummary) this.showResult();
     else this.showTitle();
@@ -144,7 +439,8 @@ var UI = {
 
   showTitle: function () {
     Game.state = 'MENU';
-    // 标题页是"最上层"：结算页 / 工坊都必须收起来，否则看起来像按钮没反应
+    // 标题页是"最上层"：结算页 / 选敌页 / 工坊都必须收起来
+    this.hideBossSelect();
     this.hideResult();
     this.hideIaijutsuHub();
     if (window.IaijutsuMode && IaijutsuMode.restoreDefaultCursor) {
@@ -157,7 +453,25 @@ var UI = {
       var highExEl = document.getElementById('title-high-ex');
       if (highExEl) highExEl.textContent = MiniGames.getModeHighScore('ex');
       var highBossEl = document.getElementById('title-high-boss');
-      if (highBossEl) highBossEl.textContent = MiniGames.getModeHighScore('boss');
+      var bossUnitEl = document.getElementById('title-boss-unit');
+      if (highBossEl) {
+        var bRank = MiniGames.getBossBestRank ? MiniGames.getBossBestRank() : '';
+        var bTime = MiniGames.getBossBestTime ? MiniGames.getBossBestTime() : 0;
+        if (bTime > 0) {
+          highBossEl.textContent = (bRank || 'B') + ' · ' + bTime.toFixed(1) + 's';
+          if (bossUnitEl) bossUnitEl.textContent = '';
+        } else {
+          highBossEl.textContent = '未斩';
+          if (bossUnitEl) bossUnitEl.textContent = '';
+        }
+      }
+      var highChaseEndless = document.getElementById('title-high-chase-endless');
+      if (highChaseEndless) highChaseEndless.textContent = MiniGames.getModeHighScore('chase_endless');
+      var bestChaseTime = document.getElementById('title-best-chase-time');
+      if (bestChaseTime && MiniGames.getChaseEscapeBestTime) {
+        var bt = MiniGames.getChaseEscapeBestTime();
+        bestChaseTime.textContent = bt > 0 ? (bt.toFixed(1) + 's') : '--';
+      }
     }
   },
 
@@ -176,12 +490,74 @@ var UI = {
     };
     var modeHigh = MiniGames.getModeHighScore();
     var isWin = (s.result === 'win' || MiniGames.result === 'win');
-    setText('result-icon', isWin ? '🏆' : '🎯');
-    setText('result-title', isWin ? '宿敌已斩' : '特训结束');
+    var isChaseEscape = (s.modeId === 'chase_escape');
+    var isChaseEndless = (s.modeId === 'chase_endless');
+
+    var isBossMode = (s.modeId === 'boss');
+
+    if (isChaseEscape) {
+      setText('result-icon', isWin ? '⛩️' : '👹');
+      setText('result-title', isWin ? '成功逃脱' : '追猎失败');
+      if (isWin && s.clearTime > 0) {
+        setText('result-combo-label', '1500m 逃脱用时');
+        setText('result-combo', s.clearTime.toFixed(1));
+        setText('result-combo-unit', '秒');
+        var bt = MiniGames.getChaseEscapeBestTime ? MiniGames.getChaseEscapeBestTime() : 0;
+        setText('result-record', (s.isNewHigh ? '🌟 新纪录！' : ('最快逃脱：' + (bt > 0 ? bt.toFixed(1) + 's' : '--'))) + ' · 本局最高 ' + s.maxCombo + ' 连斩');
+      } else {
+        setText('result-combo-label', '逃亡推进距离');
+        setText('result-combo', String(s.distanceM || 0));
+        setText('result-combo-unit', 'm / ' + (s.targetDistanceM || 1500) + 'm');
+        setText('result-record', '本局最高连斩：' + s.maxCombo + ' 连');
+      }
+    } else if (isChaseEndless) {
+      setText('result-icon', '♾️');
+      setText('result-title', '无尽逃亡结算');
+      setText('result-combo-label', '本局逃亡距离');
+      setText('result-combo', String(s.distanceM || 0));
+      setText('result-combo-unit', 'm');
+      setText('result-record', (s.isNewHigh ? '🌟 新纪录！' : ('历史最远：' + modeHigh + ' m')) + ' · 最高 ' + s.maxCombo + ' 连斩');
+    } else if (isBossMode) {
+      setText('result-icon', isWin ? '⚔️' : '👹');
+      setText('result-title', isWin ? ('宿敌已斩 · ' + (s.bossRank || 'B') + ' 级') : '对决落败');
+      if (isWin) {
+        setText('result-combo-label', (s.bossName || '宿敌') + ' · 斩杀用时');
+        setText('result-combo', (s.bossClearTime || 0).toFixed(1));
+        setText('result-combo-unit', '秒');
+        var noHitTxt = (s.hitsTaken === 0) ? '无伤通关' : ('受击 ' + (s.hitsTaken || 0) + ' 次');
+        var bBestT = MiniGames.getBossBestTime ? MiniGames.getBossBestTime() : 0;
+        var bBestR = MiniGames.getBossBestRank ? MiniGames.getBossBestRank() : '';
+        setText('result-record', (s.isNewHigh ? '🌟 刷新纪录！' : ('最佳：' + (bBestR || 'B') + ' · ' + (bBestT > 0 ? bBestT.toFixed(1) + 's' : '--'))) + ' · ' + noHitTxt + ' · 见切 ' + (s.parryCount || 0) + ' · 处决 ' + (s.execCount || 0));
+      } else {
+        setText('result-combo-label', (s.bossName || '宿敌') + ' · 剩余血量');
+        setText('result-combo', String(s.bossHpPct || 0));
+        setText('result-combo-unit', '%');
+        setText('result-record', '完美见切 ' + (s.parryCount || 0) + ' 次 · 处决 ' + (s.execCount || 0) + ' 次 · 最高 ' + s.maxCombo + ' 连斩');
+      }
+    } else {
+      setText('result-icon', isWin ? '🏆' : '🎯');
+      setText('result-title', isWin ? '宿敌已斩' : '特训结束');
+      setText('result-combo-label', '本局最高连斩');
+      setText('result-combo', String(s.maxCombo));
+      setText('result-combo-unit', '连');
+      setText('result-record', s.isNewHigh ? '🌟 新纪录！' : ('本模式最高：' + modeHigh));
+    }
+
+    var resBossTutBtn = document.getElementById('result-boss-tutorial-btn');
+    if (resBossTutBtn) {
+      resBossTutBtn.classList.toggle('hidden', !isBossMode);
+    }
+    var switchBossBtn = document.getElementById('result-switch-boss-btn');
+    if (switchBossBtn) {
+      switchBossBtn.classList.toggle('hidden', !isBossMode);
+    }
+    var contEndlessBtn = document.getElementById('result-continue-endless-btn');
+    if (contEndlessBtn) {
+      contEndlessBtn.classList.toggle('hidden', !(isChaseEscape && isWin));
+    }
+
     setText('result-mode', s.modeName ? ('模式：' + s.modeName) : '');
-    setText('result-combo', String(s.maxCombo));
     setText('result-high', String(modeHigh));
-    setText('result-record', s.isNewHigh ? '🌟 新纪录！' : ('本模式最高：' + modeHigh));
     setText('result-reward', '💰 +' + s.rewardMoney + '   🔷 +' + s.rewardShards);
     setText('result-msg', s.msg || '⚔️ 居合断连 3 次，特训结束！');
     el.classList.remove('hidden');
