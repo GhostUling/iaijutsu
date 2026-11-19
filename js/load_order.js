@@ -1,5 +1,5 @@
 // ===== 脚本加载清单（唯一权威，index.html 与 tests/ 共用） =====
-window.GAME_ASSET_VER = '10';
+window.GAME_ASSET_VER = '11';
 window.GAME_LOAD_ORDER = [
   // 核心引擎层
   'js/core/config.js',
@@ -24,7 +24,8 @@ window.GAME_LOAD_ORDER = [
   'js/modes/iaijutsu/iaijutsu_targets_ex.js',
   'js/modes/iaijutsu/iaijutsu_mode_ex.js',
 
-  // 宿敌战（独立扩展包，Boss 实体 + 模式控制器 + 新手交互教程）
+  // 宿敌战（独立扩展包，三大古流派 + Boss 实体 + 模式控制器 + 新手交互教程）
+  'js/modes/iaijutsu/iaijutsu_boss_styles.js',
   'js/modes/iaijutsu/iaijutsu_boss.js',
   'js/modes/iaijutsu/iaijutsu_mode_boss.js',
   'js/modes/iaijutsu/iaijutsu_boss_tutorial.js',

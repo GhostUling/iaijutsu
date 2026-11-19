@@ -199,13 +199,13 @@ window.IaijutsuBoss = {
   // --------------------------------------------------------------------------
   isParryWindow: function (boss) {
     if (!boss || this.isUnblockable(boss.action)) return false;
-    var win = boss.tutorialParryWindow || 0.28;
+    var win = boss.tutorialParryWindow || boss.styleParryWindow || 0.28;
     if (boss.state === 'telegraph') {
       var rem = boss.stateDur - boss.stateT;
       return rem <= win && rem >= -0.02;
     }
     if (boss.state === 'action') {
-      return boss.stateT <= (boss.tutorialParryWindow ? 0.22 : 0.14);
+      return boss.stateT <= (win > 0.3 ? 0.20 : 0.14);
     }
     return false;
   },
@@ -260,7 +260,9 @@ window.IaijutsuBoss = {
   // --------------------------------------------------------------------------
   executeBoss: function (boss, hitAngle, mg) {
     var data = mg.iaijutsuData;
-    var execDmg = boss.hp <= 28 ? boss.hp : 26;
+    var style = (data && data.bossStyle) || (window.IaijutsuBossStyles ? window.IaijutsuBossStyles.getActiveStyle(mg) : null);
+    var baseExec = 26 + ((style && style.execBonus) ? style.execBonus : 0);
+    var execDmg = boss.hp <= (baseExec + 2) ? boss.hp : baseExec;
     boss.hp = (data && data.bossTutorial) ? Math.max(12, boss.hp - execDmg) : Math.max(0, boss.hp - execDmg);
     boss.posture = 0;
     boss.hitFlash = 0.35;
@@ -298,7 +300,11 @@ window.IaijutsuBoss = {
     SFX.play('lightning');
     SFX.play('victory');
     Main.shakeTrauma = Math.max(Main.shakeTrauma || 0, 0.85);
-    FX.floatText(boss.x, boss.y - boss.r - 36, '⚡ 居合处决 · 一刀断魄 -' + execDmg, '#fde047', 2.05);
+    var execTxt = (style && style.id === 'jigen') ? ('🔥 秘剑·泷落断魄 -' + execDmg) : ('⚡ 居合处决 · 一刀断魄 -' + execDmg);
+    FX.floatText(boss.x, boss.y - boss.r - 36, execTxt, '#fde047', 2.05);
+    if (window.IaijutsuBossStyles && style) {
+      window.IaijutsuBossStyles.showCalligraphy(mg, style.id === 'jigen' ? '秘剑 · 泷落' : '奥义 · 处决', style.shortName, '#fde047');
+    }
     mg.addExplosion(boss.x, boss.y, '#fde047', 42);
     mg.addExplosion(boss.x, boss.y, boss.colors.main, 28);
 
@@ -327,8 +333,10 @@ window.IaijutsuBoss = {
     var data = mg.iaijutsuData;
     if (!boss || !data || boss.state === 'dying') return false;
 
+    var style = (data && data.bossStyle) || (window.IaijutsuBossStyles ? window.IaijutsuBossStyles.getActiveStyle(mg) : null);
+    var refund = (style && style.eyeRefund) ? style.eyeRefund : 2.0;
     data.parryCount = (data.parryCount || 0) + 1;
-    data.eyeCd = Math.max(0, (data.eyeCd || 0) - 2.0);
+    data.eyeCd = Math.max(0, (data.eyeCd || 0) - refund);
     data.bulletTime = Math.max(data.bulletTime || 0, 0.22);
 
     Player.skillTimers[1] = 0;
@@ -357,29 +365,33 @@ window.IaijutsuBoss = {
       }
     }
 
-    var counterDmg = 6;
-    boss.hp = Math.max(0, boss.hp - counterDmg);
+    var parryRes = (window.IaijutsuBossStyles && window.IaijutsuBossStyles.onPerfectParry)
+      ? window.IaijutsuBossStyles.onPerfectParry(boss, mg)
+      : { counterDmg: 6, postureGain: 34, label: '⚡ 心眼·完美见切！反斩 -6' };
+    var counterDmg = parryRes.counterDmg || 6;
+    var parryPosture = parryRes.postureGain || 34;
+    boss.hp = data.bossTutorial ? Math.max(75, boss.hp - counterDmg) : Math.max(0, boss.hp - counterDmg);
 
     var cx = (Player.x + boss.x) * 0.5;
     var cy = (Player.y + boss.y) * 0.5;
     boss.clashRings.push({
       x: cx, y: cy, r: 16, maxR: 210,
-      color: '#7dd3fc', subColor: '#fde047', life: 0.38, maxLife: 0.38, star: true
+      color: (style && style.color) || '#7dd3fc', subColor: '#fde047', life: 0.38, maxLife: 0.38, star: true
     });
 
     SFX.play('parry');
     SFX.play('lightning');
     Main.shakeTrauma = Math.max(Main.shakeTrauma || 0, 0.58);
-    FX.floatText(boss.x, boss.y - boss.r - 32, '⚡ 心眼·完美见切！反斩 -6', '#7dd3fc', 1.75);
+    FX.floatText(boss.x, boss.y - boss.r - 32, parryRes.label || ('⚡ 心眼·完美见切！反斩 -' + counterDmg), (style && style.color) || '#7dd3fc', 1.75);
     mg.addExplosion(cx, cy, '#fde047', 26);
-    mg.addExplosion(cx, cy, '#38bdf8', 22);
+    mg.addExplosion(cx, cy, (style && style.color) || '#38bdf8', 22);
 
     if (boss.hp <= 0) {
       this.startDying(boss, mg);
       return true;
     }
 
-    var broke = this.addPosture(boss, 34, mg);
+    var broke = this.addPosture(boss, data.bossTutorial && boss.tutorialLockPosture ? 0 : parryPosture, mg);
     if (!broke) {
       if (!this.checkPhaseTransition(boss, mg)) {
         boss.state = 'recover';
@@ -484,8 +496,11 @@ window.IaijutsuBoss = {
       }
     }
 
-    var dmg = weakHit ? 5 : 3;
-    var postureGain = weakHit ? 20 : 10;
+    var styleHit = (window.IaijutsuBossStyles && window.IaijutsuBossStyles.onBossHit)
+      ? window.IaijutsuBossStyles.onBossHit(boss, weakHit, isDash, mg)
+      : { extraDmg: 0, extraPosture: 0, label: '' };
+    var dmg = (weakHit ? 5 : 3) + (styleHit.extraDmg || 0);
+    var postureGain = (weakHit ? 20 : 10) + (styleHit.extraPosture || 0);
     boss.hp = data.bossTutorial ? Math.max(75, boss.hp - dmg) : Math.max(0, boss.hp - dmg);
     boss.hitFlash = weakHit ? 0.18 : 0.10;
     boss.windowHits = (boss.windowHits || 0) + 1;
@@ -500,7 +515,13 @@ window.IaijutsuBoss = {
     Player.invulnTimer = data.bossSafeInvuln;
     data.bulletTime = Math.max(data.bulletTime || 0, weakHit ? 0.03 : 0);
 
-    if (weakHit) {
+    if (styleHit.label) {
+      mg.combo += 3;
+      SFX.play('hit');
+      SFX.play('lightning');
+      FX.floatText(boss.x, boss.y - boss.r - 22, styleHit.label, '#fde047', 1.65);
+      mg.addExplosion(boss.x, boss.y, '#fde047', 22);
+    } else if (weakHit) {
       mg.combo += 3;
       SFX.play('hit');
       SFX.play('lightning');
@@ -1496,6 +1517,10 @@ window.IaijutsuBoss = {
   },
 
   drawEyeAura: function (ctx, mg) {
+    if (window.IaijutsuBossStyles && window.IaijutsuBossStyles.render) {
+      window.IaijutsuBossStyles.render(ctx, mg);
+      return;
+    }
     var data = mg.iaijutsuData;
     if (!data || !data.eyeActiveT || data.eyeActiveT <= 0) return;
     var alpha = Utils.clamp(data.eyeActiveT / 0.24, 0, 1);
@@ -1505,15 +1530,6 @@ window.IaijutsuBoss = {
     ctx.arc(0, 0, 34 + (1 - alpha) * 16, 0, Math.PI * 2);
     ctx.strokeStyle = 'rgba(125, 211, 252, ' + (alpha * 0.95).toFixed(3) + ')';
     ctx.lineWidth = 3;
-    ctx.shadowColor = '#38bdf8';
-    ctx.shadowBlur = 16;
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(0, 0, 22, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(253, 224, 71, ' + (alpha * 0.85).toFixed(3) + ')';
-    ctx.lineWidth = 1.6;
-    ctx.setLineDash([6, 5]);
     ctx.stroke();
     ctx.restore();
   },

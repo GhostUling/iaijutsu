@@ -52,6 +52,13 @@ IaijutsuModeBoss.init = function (mg) {
   var boss = window.IaijutsuBoss.create(mg, bossId);
   data.boss = boss;
 
+  if (window.IaijutsuBossStyles) {
+    window.IaijutsuBossStyles.initRun(mg);
+    if (data.bossStyle) {
+      boss.styleParryWindow = data.bossStyle.parryWindow || 0.28;
+    }
+  }
+
   data.bossDummy = {
     id: 'boss',
     type: 'boss',
@@ -115,11 +122,12 @@ IaijutsuModeBoss.triggerDisconnect = function (x, y, reason, mg) {
   if (!data) return;
   if (data.frenzyTimer > 0 || data.ultimateTimer > 0) return;
 
-  Player.skillTimers[1] = 1.1;
+  var missCd = (data.bossStyle && data.bossStyle.missCd) ? data.bossStyle.missCd : 1.1;
+  Player.skillTimers[1] = missCd;
 
   SFX.play('empty');
   Main.shakeTrauma = Math.max(Main.shakeTrauma || 0, 0.08);
-  FX.floatText(x, y - 30, reason === 'miss' ? '💨 挥空 · 冷却 1.1s' : '💨 冷却 1.1s', '#94a3b8', 1.15);
+  FX.floatText(x, y - 30, reason === 'miss' ? ('💨 挥空 · 冷却 ' + missCd.toFixed(1) + 's') : ('💨 冷却 ' + missCd.toFixed(1) + 's'), '#94a3b8', 1.15);
   mg.addExplosion(x, y, '#64748b', 7);
 };
 
@@ -163,7 +171,8 @@ IaijutsuModeBoss.eyeOfMind = function (mg) {
   }
 
   var boss = data.boss;
-  data.eyeCd = data.bossTutorial ? 1.15 : 3.6;
+  var styleEyeCd = (data.bossStyle && data.bossStyle.eyeCd) ? data.bossStyle.eyeCd : 3.6;
+  data.eyeCd = data.bossTutorial ? 1.15 : styleEyeCd;
   data.eyeActiveT = data.bossTutorial ? 0.34 : 0.24;
   data.bossSafeInvuln = Math.max(data.bossSafeInvuln || 0, 0.34);
   Player.invulnTimer = data.bossSafeInvuln;
@@ -265,6 +274,9 @@ IaijutsuModeBoss.update = function (dt, mouseWorld, input, mg) {
     safeInput = Object.assign({}, input);
     safeInput.spacePressed = false;
   }
+  if (window.IaijutsuBossStyles && window.IaijutsuBossStyles.processStyleInput) {
+    safeInput = window.IaijutsuBossStyles.processStyleInput(dt, mouseWorld, safeInput, mg);
+  }
   if (input.keysJustPressed && (input.keysJustPressed['KeyT'] || input.keysJustPressed['KeyU'])) {
     if (safeInput === input) safeInput = Object.assign({}, input);
     safeInput.keysJustPressed = Object.assign({}, input.keysJustPressed);
@@ -272,7 +284,7 @@ IaijutsuModeBoss.update = function (dt, mouseWorld, input, mg) {
     delete safeInput.keysJustPressed['KeyU'];
   }
 
-  if (input.rightPressed && window.IaijutsuBoss && window.IaijutsuBoss.slashNearbyBlades) {
+  if (safeInput.rightPressed && window.IaijutsuBoss && window.IaijutsuBoss.slashNearbyBlades) {
     window.IaijutsuBoss.slashNearbyBlades(mg, 110);
   }
 
@@ -280,6 +292,10 @@ IaijutsuModeBoss.update = function (dt, mouseWorld, input, mg) {
 
   // 禁止原版居合突进白嫖 0.30s 全程无敌帧：宿敌战中仅保留明确授予的安全无敌（心眼/见切/处决/受击）
   Player.invulnTimer = Math.min(Player.invulnTimer || 0, data.bossSafeInvuln || 0);
+
+  if (window.IaijutsuBossStyles && window.IaijutsuBossStyles.update) {
+    window.IaijutsuBossStyles.update(dt, mg);
+  }
 
   window.IaijutsuBoss.update(dt, mg);
 

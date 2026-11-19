@@ -387,6 +387,115 @@ try {
 }
 ok(tutRenderOk, '宿敌新手教程 5 课实景引导渲染全部无报错');
 
+// ============================================================================
+// 8. 宿敌战专属 · 三大古流派（英信 / 示现 / 新阴）+ 心眼角色环绕特效
+// ============================================================================
+var STYLES = window.IaijutsuBossStyles;
+ok(!!STYLES && STYLES.STYLE_LIST.length === 3, '三大古流派已注册（英信/示现/新阴）');
+
+// (1) 无双英信流：挥空 0.9s 短 CD + 命中后右键【奥义 · 燕返】
+STYLES.setSelectedStyleId('eishin');
+MiniGames.selectedBossStyleId = 'eishin';
+var eData = startBoss('mumyo');
+makeIdle(eData);
+var eHp0 = eData.boss.hp;
+eData.dummies.splice(eData.dummies.indexOf(eData.bossDummy), 1);
+Player.x = BOSS.getWeakPos(eData.boss, 0).x;
+Player.y = BOSS.getWeakPos(eData.boss, 0).y;
+eData.prevPos = { x: Player.x, y: Player.y };
+MODE_BOSS.onKill(eData.bossDummy, true, 0, MiniGames);
+ok(eData.tsubameWindow > 0.3, '英信流左键命中后开启【燕返】派生窗口');
+var eHpAfterHit = eData.boss.hp;
+resetInput();
+Input.rightPressed = true;
+MODE_BOSS.update(0.016, { x: eData.boss.x, y: eData.boss.y }, Input, MiniGames);
+eq(eData.boss.hp, eHpAfterHit - 4, '英信流右键触发【奥义·燕返】追加 4 点伤害');
+ok(eData.styleCalligraphy && eData.styleCalligraphy.title.indexOf('燕返') >= 0, '燕返触发竖排毛笔水墨招式牌');
+MODE_BOSS.triggerDisconnect(Player.x, Player.y, 'miss', MiniGames);
+ok(Math.abs(Player.skillTimers[1] - 0.9) < 0.02, '英信流挥空冷却缩短至 0.9s');
+
+// (2) 萨摩示现流：长按左键黄金窗松手【秘剑 · 云耀】+ 处决 34 点重伤
+STYLES.setSelectedStyleId('jigen');
+MiniGames.selectedBossStyleId = 'jigen';
+var jData = startBoss('akaoni');
+makeIdle(jData);
+resetInput();
+Player.skillTimers[1] = 0;
+Player.dashT = 0;
+Input.leftPressed = true;
+Input.mouseDown = true;
+MODE_BOSS.update(0.016, { x: jData.boss.x, y: jData.boss.y }, Input, MiniGames);
+eq(jData.jigenHolding, true, '示现流按下左键进入蓄力拔刀态');
+Input.leftPressed = false;
+MODE_BOSS.update(0.50, { x: jData.boss.x, y: jData.boss.y }, Input, MiniGames);
+Input.mouseDown = false; // 黄金窗 0.50s 松手
+MODE_BOSS.update(0.016, { x: jData.boss.x, y: jData.boss.y }, Input, MiniGames);
+eq(jData.jigenReleasePower, 2, '示现流黄金窗松手武装【秘剑·云耀】');
+var jHp0 = jData.boss.hp;
+jData.boss.hitCd = 0;
+jData.dummies.splice(jData.dummies.indexOf(jData.bossDummy), 1);
+Player.x = BOSS.getWeakPos(jData.boss, 0).x;
+Player.y = BOSS.getWeakPos(jData.boss, 0).y;
+jData.prevPos = { x: Player.x, y: Player.y };
+MODE_BOSS.onKill(jData.bossDummy, true, 0, MiniGames);
+eq(jData.boss.hp, jHp0 - 12, '示现流【秘剑·云耀】命中造成 12 点爆发伤害');
+
+// 示现流处决重劈 +8 伤（共 34 伤）
+BOSS.enterBroken(jData.boss, MiniGames);
+var jHpExec = jData.boss.hp;
+jData.boss.hitCd = 0;
+jData.dummies.splice(jData.dummies.indexOf(jData.bossDummy), 1);
+MODE_BOSS.onKill(jData.bossDummy, true, 0, MiniGames);
+eq(jData.boss.hp, jHpExec - 34, '示现流【居合处决】升级为 34 点毁灭重劈');
+
+// (3) 柳生新阴流：0.38s 宽见切窗 + 受流总切三连(10伤/44架势) + 停手自动纳刀爆残心印
+STYLES.setSelectedStyleId('shinkage');
+MiniGames.selectedBossStyleId = 'shinkage';
+var sData = startBoss('mumyo');
+var sBoss = sData.boss;
+sBoss.state = 'telegraph';
+sBoss.action = 'iaijutsu_draw';
+sBoss.stateDur = 0.72;
+sBoss.stateT = sBoss.stateDur - 0.34; // 0.34s：原版不能弹，新阴流 0.38s 可弹！
+ok(BOSS.isParryWindow(sBoss), '新阴流【参之型·受流】见切窗口放宽至 0.38s');
+var sHp0 = sBoss.hp;
+sBoss.posture = 0;
+sData.eyeCd = 0;
+resetInput();
+Input.spacePressed = true;
+MODE_BOSS.update(0.016, { x: sBoss.x, y: sBoss.y }, Input, MiniGames);
+eq(sBoss.hp, sHp0 - 10, '新阴流完美见切触发【总切三连】造成 10 点伤害');
+eq(sBoss.posture, 44, '新阴流完美见切暴涨 44 点架势');
+eq(sData.zanshinStacks, 1, '新阴流见切刻下残心印记');
+var sHpBeforeSheathe = sBoss.hp;
+resetInput();
+MODE_BOSS.update(0.4, { x: sBoss.x, y: sBoss.y }, Input, MiniGames);
+eq(sData.zanshinStacks, 0, '新阴流短暂停手自动完成【血振·纳刀】并清空残心印');
+eq(sBoss.hp, sHpBeforeSheathe - 3, '新阴流纳刀引爆残心印造成追加伤害');
+
+// (4) 心眼角色环绕特效全状态（就绪常驻 / 金光爆闪 / 冷却弧 / 流派专属渲染）冒烟
+var styleRenderOk = true;
+try {
+  ['eishin', 'jigen', 'shinkage'].forEach(function (sid) {
+    STYLES.setSelectedStyleId(sid);
+    MiniGames.selectedBossStyleId = sid;
+    var sd = startBoss('mumyo');
+    sd.eyeCd = 0; sd.eyeJustReadyT = 0.3; sd.eyeActiveT = 0.15;
+    sd.tsubameWindow = 0.3; sd.jigenHolding = true; sd.jigenChargeT = 0.52;
+    sd.zanshinStacks = 2; sd.sheatheFlashT = 0.3;
+    sd.boss.state = 'telegraph'; sd.boss.action = 'iaijutsu_draw';
+    sd.boss.stateDur = 0.7; sd.boss.stateT = 0.58;
+    STYLES.showCalligraphy(MiniGames, '奥义 · 测试', sid, '#38bdf8');
+    BOSS.render(ctx, MiniGames);
+    sd.eyeCd = 1.8;
+    BOSS.render(ctx, MiniGames);
+  });
+} catch (err) {
+  styleRenderOk = false;
+  console.error('流派与心眼特效渲染异常:', err);
+}
+ok(styleRenderOk, '三大流派 + 心眼就绪/金光爆闪/冷却弧全状态渲染无报错');
+
 MiniGames.leave();
 ok(window.IaijutsuMode === MODE_BASE && window.IaijutsuTargets === TARGETS_BASE, '离场后恢复原版实现');
 
@@ -395,4 +504,4 @@ if (fail) {
   console.error('共 ' + fail + ' 项断言失败');
   process.exit(1);
 }
-console.log('高难宿敌战、选敌页与新手教程全部断言通过');
+console.log('高难宿敌战、三大流派、选敌页与新手教程全部断言通过');

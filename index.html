@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>居合斩 · 无限连闪</title>
-<link rel="stylesheet" href="css/style.css?v=10">
+<link rel="stylesheet" href="css/style.css?v=11">
 </head>
 <body>
   <div id="stage">
@@ -96,6 +96,14 @@
           <span><b class="rule-red">危 字杀招</b> 不可弹反，务必突进闪避</span>
           <span><b class="rule-warn">⛔ 蓄力霸体</b> 硬撞会被震刀弹开</span>
           <span><b class="rule-gold">⚡ 满架势</b> 破防后一刀高伤处决</span>
+        </div>
+
+        <div class="boss-style-section">
+          <div class="boss-style-head">
+            <span class="boss-style-label">🗡️ 剑道流派 · 宿敌战专属</span>
+            <span class="boss-style-sub" id="boss-style-active-desc">选择你的出刀流派与专属奥义</span>
+          </div>
+          <div id="boss-style-picker" class="boss-style-picker" role="radiogroup" aria-label="选择宿敌战剑道流派"></div>
         </div>
 
         <div id="boss-select-grid" class="boss-select-grid"></div>
@@ -238,7 +246,7 @@
     </div>
   </div>
 
-  <script src="js/load_order.js?v=10"></script>
+  <script src="js/load_order.js?v=11"></script>
   <script>
     (function () {
       var list = window.GAME_LOAD_ORDER || [];

@@ -86,7 +86,11 @@ var UI = {
     var bossRandBtn = document.getElementById('boss-select-random-btn');
     if (bossRandBtn) bossRandBtn.addEventListener('click', function () {
       UI.bossPickId = 'random';
-      if (window.MiniGames) MiniGames.selectedBossId = 'random';
+      if (window.MiniGames) {
+        MiniGames.selectedBossId = 'random';
+        MiniGames.selectedBossStyleId = (window.IaijutsuBossStyles && IaijutsuBossStyles.getSelectedStyleId)
+          ? IaijutsuBossStyles.getSelectedStyleId() : 'eishin';
+      }
       UI.beginRun('boss');
     });
     var bossFightBtn = document.getElementById('boss-select-fight-btn');
@@ -215,7 +219,11 @@ var UI = {
   startSelectedBoss: function (bossId) {
     var pick = bossId || this.bossPickId || 'mumyo';
     this.bossPickId = pick;
-    if (window.MiniGames) MiniGames.selectedBossId = pick;
+    if (window.MiniGames) {
+      MiniGames.selectedBossId = pick;
+      MiniGames.selectedBossStyleId = (window.IaijutsuBossStyles && IaijutsuBossStyles.getSelectedStyleId)
+        ? IaijutsuBossStyles.getSelectedStyleId() : 'eishin';
+    }
     this.beginRun('boss');
   },
 
@@ -350,7 +358,58 @@ var UI = {
     if (this.bossSelectPanel) this.bossSelectPanel.classList.add('hidden');
   },
 
+  renderBossStylePicker: function () {
+    var wrap = document.getElementById('boss-style-picker');
+    if (!wrap || !window.IaijutsuBossStyles) return null;
+    var list = IaijutsuBossStyles.STYLE_LIST || [];
+    var curId = IaijutsuBossStyles.getSelectedStyleId();
+    var activeStyle = IaijutsuBossStyles.getStyle(curId);
+    wrap.innerHTML = '';
+
+    var self = this;
+    for (var i = 0; i < list.length; i++) {
+      (function (st) {
+        var isSel = (st.id === curId);
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'boss-style-card' + (isSel ? ' selected' : '');
+        btn.setAttribute('role', 'radio');
+        btn.setAttribute('aria-checked', isSel ? 'true' : 'false');
+        btn.style.setProperty('--style-color', st.color);
+        btn.style.setProperty('--style-glow', st.glow);
+
+        var skHtml = '';
+        for (var s = 0; s < (st.skills || []).length; s++) {
+          var sk = st.skills[s];
+          skHtml += '<div class="boss-style-skill"><b>' + sk.name + '</b><span>' + sk.key + '</span></div>';
+        }
+
+        btn.innerHTML =
+          '<div class="boss-style-card-top">' +
+            '<span class="boss-style-name">' + st.name + '</span>' +
+            '<span class="boss-style-badge">' + st.badge + '</span>' +
+          '</div>' +
+          '<div class="boss-style-skills">' + skHtml + '</div>';
+
+        btn.addEventListener('click', function () {
+          IaijutsuBossStyles.setSelectedStyleId(st.id);
+          if (window.MiniGames) MiniGames.selectedBossStyleId = st.id;
+          if (window.SFX && SFX.play) SFX.play('click');
+          self.renderBossSelect();
+        });
+        wrap.appendChild(btn);
+      })(list[i]);
+    }
+
+    var descEl = document.getElementById('boss-style-active-desc');
+    if (descEl && activeStyle) {
+      descEl.textContent = activeStyle.summary;
+    }
+    return activeStyle;
+  },
+
   renderBossSelect: function () {
+    var activeStyle = this.renderBossStylePicker();
     if (!this.bossSelectGrid) this.bossSelectGrid = document.getElementById('boss-select-grid');
     if (!this.bossSelectGrid || !window.IaijutsuBoss) return;
     var list = window.IaijutsuBoss.BOSS_LIST || [];
@@ -428,7 +487,8 @@ var UI = {
 
     var fightBtn = document.getElementById('boss-select-fight-btn');
     if (fightBtn && pickedDef) {
-      fightBtn.innerHTML = '⚔️ 拔刀迎战 · ' + pickedDef.shortName + ' <small>空格</small>';
+      var stLabel = activeStyle ? ('【' + activeStyle.shortName + '】') : '';
+      fightBtn.innerHTML = '⚔️ ' + stLabel + '迎战 · ' + pickedDef.shortName + ' <small>空格</small>';
     }
   },
 

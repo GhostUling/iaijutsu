@@ -1291,3 +1291,102 @@ canvas {
   gap: 10px;
 }
 
+/* ---------- 宿敌战专属 · 三大古流派选择器 ---------- */
+.boss-style-section {
+  margin-top: 11px;
+  padding: 10px 12px 11px;
+  border-radius: 10px;
+  background: rgba(10, 16, 30, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+.boss-style-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.boss-style-label {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #f8fafc;
+  white-space: nowrap;
+}
+.boss-style-sub {
+  font-size: 11.5px;
+  color: #94a3b8;
+}
+.boss-style-picker {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+}
+.boss-style-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 9px 11px;
+  border-radius: 9px;
+  font-family: inherit;
+  text-align: left;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1.5px solid rgba(148, 163, 184, 0.22);
+  cursor: pointer;
+  transition: transform 0.14s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.14s ease, box-shadow 0.14s ease;
+}
+.boss-style-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--style-color, #38bdf8);
+}
+.boss-style-card.selected {
+  border-color: var(--style-color, #38bdf8);
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.92), rgba(10, 15, 28, 0.96));
+  box-shadow: 0 0 0 1px var(--style-color, #38bdf8), 0 8px 22px var(--style-glow, rgba(56, 189, 248, 0.24));
+}
+.boss-style-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.boss-style-name {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #f8fafc;
+  white-space: nowrap;
+}
+.boss-style-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--style-color, #38bdf8);
+  white-space: nowrap;
+}
+.boss-style-skills {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.boss-style-skill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+.boss-style-skill b {
+  color: #e2e8f0;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.boss-style-skill span {
+  color: var(--style-color, #7dd3fc);
+  font-weight: 700;
+  white-space: nowrap;
+}
+@media (max-width: 760px) {
+  .boss-style-picker { grid-template-columns: 1fr; }
+}
+
+
