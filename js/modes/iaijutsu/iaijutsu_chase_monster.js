@@ -58,12 +58,16 @@ window.IaijutsuChaseMonster = {
       lattices: [],
       phantoms: [],
 
-      // 视觉表现
+      // 视觉表现与硬直控制
       pulse: 0,
       afterimages: [],
       afterimageTimer: 0,
       roarFlash: 0,
       dimFlash: 0,      // 次元刀网 / 阶段爆发时的镜头压暗聚焦
+      staggerTimer: 0,
+      staggerMax: 1.85,
+      staggerKnockVx: 0,
+      barrierSlowT: 0,
       banished: false,
       banishT: 0
     };
@@ -98,6 +102,9 @@ window.IaijutsuChaseMonster = {
     if (data.escapeDashCd > 0) {
       data.escapeDashCd = Math.max(0, data.escapeDashCd - 1.2);
     }
+    if (window.IaijutsuModeChase && window.IaijutsuModeChase.addCounterCharge) {
+      window.IaijutsuModeChase.addCounterCharge(mg, 2, Player.x, Player.y);
+    }
 
     if (window.SFX) {
       SFX.play('parry');
@@ -107,10 +114,56 @@ window.IaijutsuChaseMonster = {
       Main.shakeTrauma = Math.max(Main.shakeTrauma || 0, 0.16);
     }
     if (window.FX && FX.floatText) {
-      FX.floatText(Player.x, Player.y - 44, '⚡ 见切·' + (sourceLabel || '破招') + ' +3连斩！', '#7dd3fc', 1.4);
+      FX.floatText(Player.x, Player.y - 44, '⚡ 见切·' + (sourceLabel || '破招') + ' +3连斩 · 反击+2', '#7dd3fc', 1.4);
     }
     mg.addExplosion(Player.x, Player.y, '#7dd3fc', 18);
     mg.addExplosion(Player.x, Player.y, '#ffffff', 10);
+    return true;
+  },
+
+  // 【回身 · 破魔斩】命中噬影鬼：大幅击退 + 打断招式 + 硬直瘫痪
+  applyCounterHit: function (mg, knockbackPx, staggerDur) {
+    var data = mg.iaijutsuData;
+    var monster = data && data.monster;
+    if (!monster || monster.banished) return false;
+
+    var kb = knockbackPx || 295;
+    var dur = staggerDur || 1.85;
+    var minX = (mg.room ? mg.room.worldX : 0) + 56;
+
+    // 瞬间击退 + 惯性滑退
+    monster.x = Math.max(minX, monster.x - kb * 0.55);
+    monster.staggerKnockVx = -(kb * 0.45) / 0.36;
+    monster.state = 'stagger';
+    monster.stateT = 0;
+    monster.stateDur = dur;
+    monster.staggerTimer = dur;
+    monster.staggerMax = dur;
+    monster.skillType = null;
+    monster.pendingWaveLanes = [];
+    monster.vx = 0;
+    monster.vy = 0;
+    monster.roarFlash = 0.7;
+
+    if (window.SFX) {
+      SFX.play('hit');
+      SFX.play('parry');
+    }
+    if (window.Main) {
+      Main.shakeTrauma = Math.max(Main.shakeTrauma || 0, 0.48);
+    }
+    mg.addExplosion(monster.x, monster.y, '#fde047', 34);
+    mg.addExplosion(monster.x, monster.y, '#f43f5e', 24);
+    mg.addExplosion(monster.x, monster.y, '#ffffff', 14);
+    if (window.FX && FX.floatText) {
+      FX.floatText(
+        Math.max(monster.x, (data.camX || 0) + 120),
+        monster.y - 54,
+        '💥 破魔重创！击退硬直 ' + dur.toFixed(1) + 's',
+        '#fde047',
+        1.5
+      );
+    }
     return true;
   },
 
@@ -605,7 +658,7 @@ window.IaijutsuChaseMonster = {
         data.bannerSub = '解锁【绯红次元刀网】与双技能压迫连携！';
       } else {
         data.bannerText = '🔥 三阶 · 百鬼夜行！';
-        data.bannerSub = '业火双翼觉醒 · 解锁【夺路鬼影分身】前后夹击！';
+        data.bannerSub = '业火双翼觉醒 · 迎面居合可【一闪断影】反杀鬼影分身！';
       }
     }
 
@@ -613,6 +666,10 @@ window.IaijutsuChaseMonster = {
     for (var ai = monster.afterimages.length - 1; ai >= 0; ai--) {
       monster.afterimages[ai].life -= dt;
       if (monster.afterimages[ai].life <= 0) monster.afterimages.splice(ai, 1);
+    }
+
+    if (monster.barrierSlowT > 0) {
+      monster.barrierSlowT = Math.max(0, monster.barrierSlowT - dt);
     }
 
     var gap = Player.x - monster.x;
@@ -623,7 +680,7 @@ window.IaijutsuChaseMonster = {
     } else if (gap < 145) {
       rubberBonus = -20;
     }
-    var effectiveChaseSpd = Math.max(225, baseChaseSpd + rubberBonus);
+    var effectiveChaseSpd = Math.max(225, baseChaseSpd + rubberBonus) * (monster.barrierSlowT > 0 ? 0.52 : 1);
 
     // ==================== 怪物主状态机 ====================
     monster.stateT += dt;
@@ -690,6 +747,33 @@ window.IaijutsuChaseMonster = {
         monster.stateT = 0;
         monster.stateDur = monster.skillType === 'lunge' ? 0.50 : 0.34;
       }
+    } else if (monster.state === 'stagger') {
+      monster.staggerTimer = Math.max(0, (monster.staggerTimer || 0) - dt);
+      if (monster.staggerKnockVx < -5) {
+        monster.x = Math.max((mg.room ? mg.room.worldX : 0) + 56, monster.x + monster.staggerKnockVx * dt);
+        monster.staggerKnockVx *= Math.pow(0.06, dt);
+      } else {
+        monster.staggerKnockVx = 0;
+      }
+      // 破魔余烬火花
+      if (Math.random() < 0.55) {
+        mg.particles.push({
+          x: monster.x + (Math.random() - 0.5) * 44,
+          y: monster.y + (Math.random() - 0.5) * 44,
+          vx: (Math.random() - 0.5) * 90,
+          vy: -40 - Math.random() * 80,
+          size: 3 + Math.random() * 2.5,
+          color: Math.random() < 0.6 ? '#fde047' : '#f43f5e',
+          life: 0.25,
+          maxLife: 0.25
+        });
+      }
+      if (monster.staggerTimer <= 0 || monster.stateT >= monster.stateDur) {
+        monster.state = 'chase';
+        monster.stateT = 0;
+        monster.skillType = null;
+        monster.skillCd = 1.35;
+      }
     } else if (monster.state === 'recover') {
       monster.x += (effectiveChaseSpd * 0.58) * dt;
       monster.y += (Player.y - monster.y) * Math.min(1, dt * 3.5);
@@ -706,7 +790,7 @@ window.IaijutsuChaseMonster = {
     }
 
     // ==================== 二阶+ 双技能脱手连携压迫 ====================
-    if (monster.phase >= 2 && monster.state !== 'intro') {
+    if (monster.phase >= 2 && monster.state !== 'intro' && monster.state !== 'stagger') {
       monster.offhandCd -= dt;
       if (monster.offhandCd <= 0) {
         monster.offhandCd = (monster.phase >= 3 ? 3.2 : 4.3) + Math.random() * 1.1;
@@ -738,7 +822,7 @@ window.IaijutsuChaseMonster = {
 
     // ==================== 1. 本体碰撞 ====================
     var hitDist = monster.r + (Player.radius || 16) - 4;
-    if (Utils.dist(monster.x, monster.y, Player.x, Player.y) <= hitDist) {
+    if (monster.state !== 'stagger' && Utils.dist(monster.x, monster.y, Player.x, Player.y) <= hitDist) {
       var label = (monster.state === 'action' && monster.skillType === 'lunge') ? '猛冲突袭命中' : '被噬影鬼追上';
       this.checkHitOrGraze(mg, label, '猛冲', 125, true);
     }
@@ -1052,9 +1136,18 @@ window.IaijutsuChaseMonster = {
         ph.x -= ph.dashSpeed * dt;
         ph.afterimages.push({ x: ph.x, y: ph.y, life: 0.2, maxLife: 0.2 });
 
-        if (!ph.hitDone && Utils.dist(Player.x, Player.y, ph.x, ph.y) <= ph.r + (Player.radius || 16) - 2) {
-          if (this.checkHitOrGraze(mg, '鬼影分身反斩命中', '分身', 45, false)) {
-            ph.hitDone = true;
+        var distPh = Utils.dist(Player.x, Player.y, ph.x, ph.y);
+        if (!ph.hitDone && distPh <= ph.r + (Player.radius || 16) + 8) {
+          // 正在左键居合突进中迎面相撞 -> 【一闪断影！】直接斩碎分身！
+          if (data.isDashing && Player.dashT > 0 && window.IaijutsuModeChase && window.IaijutsuModeChase.onKillPhantom) {
+            monster.phantoms.splice(phi, 1);
+            window.IaijutsuModeChase.onKillPhantom(ph, mg);
+            continue;
+          }
+          if (distPh <= ph.r + (Player.radius || 16) - 2) {
+            if (this.checkHitOrGraze(mg, '鬼影分身反斩命中', '分身', 45, false)) {
+              ph.hitDone = true;
+            }
           }
         }
         if (ph.t >= ph.dashDur || ph.x < data.camX - 120) {
@@ -1323,10 +1416,10 @@ window.IaijutsuChaseMonster = {
         ctx.stroke();
       }
       ctx.font = 'bold 12px "Segoe UI", sans-serif';
-      ctx.fillStyle = '#fecdd3';
+      ctx.fillStyle = '#fde047';
       ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
-      ctx.fillText('<<< 鬼影迎面反冲斩', ph.x - 24, pRailY - 10);
+      ctx.fillText('<<< 鬼影反冲 · ⚔ 左键可迎面斩碎！', ph.x - 24, pRailY - 10);
       ctx.restore();
     }
   },
@@ -1703,6 +1796,15 @@ window.IaijutsuChaseMonster = {
       ctx.beginPath();
       ctx.arc(0, 0, ph.r + 9, -Math.PI / 2, -Math.PI / 2 + pr * Math.PI * 2);
       ctx.stroke();
+
+      // 可迎面斩杀金青十字闪星提示
+      var starPulse = 0.65 + 0.35 * Math.sin(timer * 18);
+      ctx.strokeStyle = 'rgba(125, 211, 252, ' + starPulse.toFixed(3) + ')';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-ph.r - 12, 0); ctx.lineTo(-ph.r + 2, 0);
+      ctx.moveTo(-ph.r - 5, -7); ctx.lineTo(-ph.r - 5, 7);
+      ctx.stroke();
     }
 
     ctx.restore();
@@ -1712,9 +1814,11 @@ window.IaijutsuChaseMonster = {
   _renderBossBody: function (ctx, monster, banishAlpha, timer) {
     ctx.save();
     ctx.globalAlpha = banishAlpha;
-    var bob = Math.sin(monster.pulse) * 4;
-    var lean = (monster.state === 'action' && monster.skillType === 'lunge') ? 0.25 : 0.1;
-    ctx.translate(monster.x, monster.y + bob);
+    var isStaggered = (monster.state === 'stagger');
+    var bob = isStaggered ? (Math.sin(timer * 48) * 3.5) : (Math.sin(monster.pulse) * 4);
+    var jitterX = isStaggered ? (Math.cos(timer * 56) * 3.5) : 0;
+    var lean = isStaggered ? -0.22 : ((monster.state === 'action' && monster.skillType === 'lunge') ? 0.25 : 0.1);
+    ctx.translate(monster.x + jitterX, monster.y + bob);
     ctx.rotate(lean);
 
     // 三阶觉醒：燃烧绯红业火双翼
@@ -1836,8 +1940,32 @@ window.IaijutsuChaseMonster = {
     ctx.lineTo(25, 12);
     ctx.stroke();
 
-    // 蓄力环
-    if (monster.state === 'telegraph') {
+    // 蓄力环 / 破魔硬直裂痕与倒计时环
+    if (monster.state === 'stagger') {
+      var sPct = Utils.clamp((monster.staggerTimer || 0) / (monster.staggerMax || 1.85), 0, 1);
+      ctx.strokeStyle = '#fde047';
+      ctx.lineWidth = 3.5;
+      ctx.shadowColor = '#f59e0b';
+      ctx.shadowBlur = 16;
+      ctx.beginPath();
+      ctx.arc(0, 0, monster.r + 12, -Math.PI / 2, -Math.PI / 2 + sPct * Math.PI * 2);
+      ctx.stroke();
+
+      // 破魔斩裂痕十字印
+      ctx.strokeStyle = '#fef08a';
+      ctx.lineWidth = 2.8;
+      ctx.beginPath();
+      ctx.moveTo(-22, -18); ctx.lineTo(22, 18);
+      ctx.moveTo(18, -22); ctx.lineTo(-18, 22);
+      ctx.stroke();
+
+      ctx.rotate(-lean);
+      ctx.font = 'bold 12px "Segoe UI", sans-serif';
+      ctx.fillStyle = '#fef08a';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('💥 破魔硬直 ' + (monster.staggerTimer || 0).toFixed(1) + 's', 0, -monster.r - 28);
+    } else if (monster.state === 'telegraph') {
       var tProg = Utils.clamp(monster.stateT / monster.stateDur, 0, 1);
       ctx.strokeStyle = '#fde047';
       ctx.lineWidth = 3.2;

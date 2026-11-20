@@ -311,6 +311,135 @@ ok(MiniGames.finished, '无尽模式 0 命结束');
 ok(MiniGames.getModeHighScore('chase_endless') >= 3000, '无尽最远逃亡距离已写入 localStorage');
 
 // ============================================================================
+// 6.5 追逐战新系统回归：风雷瞬步特效与就绪脉冲 / E·Q 破魔反击 / 疾风铃靶 /
+//     迎面斩杀鬼影分身 / 破门木障 & 神佑加速鸟居
+// ============================================================================
+data = startChase('chase_escape');
+
+// (1) 风雷瞬步专属特效（区别于居合刀光）+ CD 结束就绪脉冲
+Player.swingT = 0;
+data.escapeDashCd = 0;
+MODE_CHASE.triggerEscapeStep(MiniGames);
+eq(Player.swingT, 0, '空格【风雷瞬步】不触发普攻挥剑弧光，与居合斩视觉区分');
+ok(data.windStepFx.seals.length >= 1 && data.windStepFx.rings.length >= 2 && data.windStepFx.feathers.length >= 10, '风雷瞬步生成青翠风符阵、音爆风环与风羽粒子');
+data.escapeDashCd = 0.01;
+data.escapeReadyPulse = 0;
+stepFrames(2, 0.016);
+eq(data.escapeDashCd, 0, '瞬步冷却归零');
+ok(data.escapeReadyPulse > 0, '瞬步冷却转好瞬间触发高可见度就绪脉冲');
+
+// (2) 疾风铃靶：顺风加速 + 驱散周边暗雾陷阱 + 缩减瞬步 CD
+var bellDummy = null;
+for (var bi = 0; bi < data.dummies.length; bi++) {
+  if (data.dummies[bi].isWindBell) { bellDummy = data.dummies[bi]; break; }
+}
+ok(!!bellDummy, '开局踏板包含【疾风铃靶】');
+data.slowTimer = 0.5;
+data.escapeDashCd = 3.0;
+data.monster.traps = [{ x: bellDummy.x + 80, y: bellDummy.y, r: 52, phase: 'active', activeT: 4, burstT: 0, pulse: 0 }];
+MODE_CHASE.onKill(bellDummy, true, 0, MiniGames);
+ok(data.windBoostTimer >= 2.0, '斩破疾风铃获得 2.3s 顺风疾行加速');
+eq(data.slowTimer, 0, '疾风铃立即解除缚足减速');
+eq(data.monster.traps.length, 0, '疾风铃驱散周边暗雾陷阱');
+ok(data.escapeDashCd < 2.5, '疾风铃缩减空格瞬步冷却');
+
+// (3) 切靶充能反击技【回身 · 破魔斩】（E / Q 键）：击退恶鬼 + 硬直打断 + 清屏威胁
+data.counterCharge = 4;
+eq(MODE_CHASE.triggerCounterSlash(MiniGames), false, '破魔斩充能未满 8 点不可释放');
+MODE_CHASE.addCounterCharge(MiniGames, 4, Player.x, Player.y);
+eq(data.counterCharge, 8, '反击充能叠满 8/8');
+ok(data.counterReadyPulse > 0, '满能瞬间触发破魔斩就绪脉冲');
+
+var mC = data.monster;
+Player.dashT = 0;
+data.isEscapeDash = false;
+data.dummies.length = 0;
+data.landmarks.length = 0;
+Player.x = MiniGames.room.worldX + 900;
+data.prevPos = { x: Player.x, y: Player.y };
+data.camX = Player.x - CFG.W * 0.35;
+mC.state = 'telegraph';
+mC.skillType = 'lunge';
+mC.x = Player.x - 180;
+mC.y = Player.y;
+mC.waves = [{ x: Player.x - 90, y: Player.y, vx: 700, halfW: 28, halfH: 27, life: 2, hit: false }];
+var monsterXBeforeCounter = mC.x;
+var comboBeforeCounter = MiniGames.combo;
+Input.ePressed = true;
+stepFrames(1, 0.016);
+Input.ePressed = false;
+eq(data.counterCharge, 0, '按 E 释放【回身 · 破魔斩】消耗全部能量');
+ok(MiniGames.combo >= comboBeforeCounter + 5, '破魔斩奖励 +5 连斩');
+ok(data.calligraphyCard && data.calligraphyCard.title.indexOf('破魔斩') >= 0, '触发竖排墨印技名卡【回身 · 破魔斩】');
+// 推进数帧让剑气波横扫命中 180px 后的噬影鬼
+stepFrames(12, 0.016);
+eq(mC.state, 'stagger', '破魔斩命中噬影鬼并打断蓄力转入硬直状态');
+ok(mC.staggerTimer > 1.2, '噬影鬼进入破魔硬直瘫痪 (' + mC.staggerTimer.toFixed(2) + 's)');
+ok(mC.x < monsterXBeforeCounter - 120, '噬影鬼被大幅击退 (' + Math.round(monsterXBeforeCounter - mC.x) + 'px)');
+eq(mC.waves.length, 0, '破魔斩顺带粉碎沿途封路斩波');
+
+// (4) 迎面斩杀【夺路鬼影分身】→ 【一闪断影！】
+mC.phantoms = [{
+  x: Player.x + 28,
+  y: Player.y,
+  phase: 'dash',
+  t: 0.1,
+  dashDur: 0.42,
+  dashSpeed: 880,
+  fadeDur: 0.28,
+  r: 30,
+  hitDone: false,
+  afterimages: []
+}];
+data.isDashing = true;
+Player.dashT = 0.12;
+Player.skillTimers[1] = 1.0;
+data.escapeDashCd = 4.0;
+data.counterCharge = 2;
+var comboBeforePh = MiniGames.combo;
+MODE_CHASE._updateLandmarksAndPhantomSlash(0.016, Player.x - 20, Player.y, {}, MiniGames);
+eq(mC.phantoms.length, 0, '左键居合突进迎面斩碎鬼影分身');
+eq(Player.skillTimers[1], 0, '【一闪断影】立即刷新左键突进 CD');
+eq(data.escapeDashCd, 0, '【一闪断影】立即刷新空格瞬步 CD');
+eq(data.counterCharge, 5, '【一闪断影】直接奖励 +3 反击充能');
+eq(MiniGames.combo, comboBeforePh + 3, '【一闪断影】奖励 +3 连斩');
+data.isDashing = false;
+Player.dashT = 0;
+
+// (5) 长廊动态地形：【破门木障】&【神佑加速鸟居】
+var testBarrier = { type: 'barrier', x: Player.x + 18, y: Player.y, w: 24, h: 180, broken: false, breakT: 0 };
+var testTorii = { type: 'torii', x: Player.x + 12, y: Player.y, w: 36, gateH: 152, activated: false, glowT: 0 };
+data.landmarks.push(testBarrier, testTorii);
+data.isDashing = true;
+Player.dashT = 0.12;
+Player.skillTimers[1] = 0.9;
+data.counterCharge = 0;
+data.slowTimer = 0.5;
+MODE_CHASE._updateLandmarksAndPhantomSlash(0.016, Player.x - 30, Player.y, {}, MiniGames);
+eq(testBarrier.broken, true, '居合突进一刀劈碎【破门木障】');
+ok(data.debris.length >= 12, '破门木障爆出木屑与符纸碎片');
+eq(Player.skillTimers[1], 0, '劈碎木障刷新突进 CD');
+eq(testTorii.activated, true, '穿过【神佑加速鸟居】成功激活');
+ok(data.toriiBoostTimer >= 2.4, '神佑鸟居赋予 2.5s 疾行加速');
+eq(data.slowTimer, 0, '神佑鸟居驱散黑雾减速');
+eq(data.counterCharge, 3, '破门木障(+2) + 神佑鸟居(+1) 合计 +3 反击充能');
+data.isDashing = false;
+Player.dashT = 0;
+
+// (6) 全新特效与地标同屏渲染无报错
+var newFxRenderOk = true;
+try {
+  data.counterCharge = 8;
+  data.escapeDashCd = 0;
+  mC.x = Player.x - 110; // 触发紧急空格脱身提示
+  MiniGames.render(ctx);
+} catch (errNew) {
+  newFxRenderOk = false;
+  console.error(errNew);
+}
+ok(newFxRenderOk, '风雷瞬步 / 破魔斩波 / 疾风铃 / 木障 / 神佑鸟居 / 恶鬼硬直 / 紧急脱身光环同屏渲染正常');
+
+// ============================================================================
 // 7. 离场还原原版实现（不污染 classic / ex / boss）
 // ============================================================================
 MiniGames.leave();

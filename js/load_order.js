@@ -1,5 +1,5 @@
 // ===== 脚本加载清单（唯一权威，index.html 与 tests/ 共用） =====
-window.GAME_ASSET_VER = '11';
+window.GAME_ASSET_VER = '12';
 window.GAME_LOAD_ORDER = [
   // 核心引擎层
   'js/core/config.js',

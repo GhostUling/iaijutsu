@@ -623,6 +623,7 @@ var MiniGames = {
       Input.leftPressed = false;
       Input.rightPressed = false;
       Input.spacePressed = false;
+      Input.ePressed = false;
       return;
     }
 
@@ -649,6 +650,7 @@ var MiniGames = {
       leftPressed: Input.leftPressed,
       rightPressed: Input.rightPressed,
       spacePressed: Input.spacePressed,
+      ePressed: Input.ePressed,
       mouseDown: Input.mouseDown,
       rightDown: Input.rightDown,
       keysJustPressed: Input.keysJustPressed || {},
@@ -658,6 +660,7 @@ var MiniGames = {
     Input.leftPressed = false;
     Input.rightPressed = false;
     Input.spacePressed = false;
+    Input.ePressed = false;
     Input.keysJustPressed = {};
 
     var mouse = Input.logicalPos ? Input.logicalPos() : { x: Player.x, y: Player.y };
